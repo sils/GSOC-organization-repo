@@ -1,0 +1,11 @@
+This repository contains all the organizational stuff for the google summer of
+code project "Boxes - Hardening sprint, express installation improvements & ISO
+download"
+(http://www.google-melange.com/gsoc/proposal/review/student/google/gsoc2014/sils1297/5629499534213120)
+
+The code is hosted in the following repositories:
+https://github.com/sils1297/GSOC-boxes
+https://github.com/sils1297/GSOC-libosinfo
+
+The schedule is mirrored through milestones and issues here.
+
