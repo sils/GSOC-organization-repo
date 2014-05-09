@@ -9,7 +9,7 @@ int main () {
         extract.extract_files.begin (tbl);
         yield;
 
-        var arch = new Util.Archivist ("testfiles/initrd.bz2", Util.ArchiveAccess.WRITE);
+        var arch = new Util.Archivist ("testfiles/initrd.bz2", Util.ArchiveAccess.READWRITE);
         tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
         tbl.insert ("testfiles/preseed.cfg", "preseednew.cfg");
         arch.insert_files.begin (tbl, false);

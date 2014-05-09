@@ -20,12 +20,12 @@ public enum Util.ArchiveAccess {
 public class Util.Archivist : GLib.Object {
     // PUBLIC MEMBERS
     public string filename { get; protected set; }
-    public ArchiveAccess access { get; protected set; }
 
     // PRIVATE MEMBERS
     private RawWriteArchive write_archive = null;
     private Archive.Format? format;
     private Archive.Filter? compression;
+    private ArchiveAccess access;
 
     // CONSTRUCTION|DESTRUCTION
     // if open only with write access, format and compression have to be specified. If not they will be ignored.
@@ -35,8 +35,7 @@ public class Util.Archivist : GLib.Object {
                       Archive.Filter? compression = null)
         throws Util.ArchiveError
         requires ( (access & 0x3) != 0 )
-        requires ( (format != null && compression != null) || (access != Util.ArchiveAccess.WRITE) )
-        requires ( filename != "" ) {
+        requires ( (format != null && compression != null) || (access != Util.ArchiveAccess.WRITE) ) {
         stdout.printf ("CONSTRUCT Archivist");
         this.access = access;
         this.filename = filename;
