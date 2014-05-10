@@ -41,20 +41,21 @@ public class Util.RawWriteArchive : GLib.Object {
 
     public RawWriteArchive.to_file (string filename,
                                     Archive.Format format,
-                                    Archive.Filter compression)
+                                    GLib.List<Archive.Filter> filters)
         throws Util.ArchiveError {
-        stdout.printf ("Opening RawWriteArchive.\n");
+        stdout.printf ("Opening RawWriteArchive.\n"); stdout.flush ();
         this._archive = new Archive.Write ();
         if ( this._archive.set_format (format) != Archive.Result.OK )
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting format (%d) for archive. Message: '%s'.",
                                                                format, this._archive.error_string ());
 
-        add_filter (compression);
+        foreach (var filter in filters)
+            add_filter (filter);
         this._archive.open_filename (filename);
     }
 
     ~RawWriteArchive () {
-        stdout.printf ("Closing RawWriteArchive.\n");
+        stdout.printf ("Closing RawWriteArchive.\n"); stdout.flush ();
         this._archive.close ();
         // will have no effect if mem is null
         GLib.free (this.mem);
@@ -70,9 +71,10 @@ public class Util.RawWriteArchive : GLib.Object {
                    compression == Archive.Filter.LZIP     ||
                    compression == Archive.Filter.XZ ) {
         Archive.Result err;
+        stdout.printf ("Adding filter %d.\n", compression); stdout.flush ();
         switch ( compression ) {
         case Archive.Filter.NONE:
-            err = this._archive.add_filter_none ();
+            err = Archive.Result.OK;
             break;
         case Archive.Filter.GZIP:
             err = this._archive.add_filter_gzip ();

@@ -24,32 +24,34 @@ public class Util.Archivist : GLib.Object {
     // PRIVATE MEMBERS
     private RawWriteArchive write_archive = null;
     private Archive.Format? format;
-    private Archive.Filter? compression;
+    private GLib.List<Archive.Filter> filters;
     private ArchiveAccess access;
 
     // CONSTRUCTION|DESTRUCTION
-    // if open only with write access, format and compression have to be specified. If not they will be ignored.
+    // if open only with write access, format and filters have to be specified. If not they will be ignored.
     public Archivist (string filename,
                       ArchiveAccess access,
                       Archive.Format? format = null,
-                      Archive.Filter? compression = null)
+                      GLib.List<Archive.Filter>? filters = null)
         throws Util.ArchiveError
         requires ( (access & 0x3) != 0 )
-        requires ( (format != null && compression != null) || (access != Util.ArchiveAccess.WRITE) ) {
-        stdout.printf ("CONSTRUCT Archivist");
+        requires ( (format != null && filters != null) || (access != Util.ArchiveAccess.WRITE) ) {
+        stdout.printf ("CONSTRUCT Archivist for file '%s'\n", filename); stdout.flush ();
         this.access = access;
         this.filename = filename;
 
         // TODO: check if file exists
         if ( writable () ) {
-            this.format = format;
-            this.compression = compression;
+            if (format != null && filters != null) {
+                this.format = format;
+                this.filters = filters.copy ();
+            }
             open_write_archive ();
         }
     }
 
     ~Archivist () {
-        stdout.printf ("DESTRUCT: Destroying archivist for file '%s'.", this.filename);
+        stdout.printf ("DESTRUCT: Destroying archivist for file '%s'.\n", this.filename); stdout.flush ();
         if ( writable () ) {
             this.simple_flush ();
             yield;
@@ -80,19 +82,19 @@ public class Util.Archivist : GLib.Object {
             var entry = get_entry_for_file (src, dst);
             if ( this.write_archive.archive.write_header (entry) != Archive.Result.OK )
                 stdout.printf ("Failed writing header for file '%s' into write archive. Message: '%s'.\n",
-                               src, this.write_archive.archive.error_string ());
+                               src, this.write_archive.archive.error_string ()); stdout.flush ();
 
             // write data
-            stdout.printf ("Reading file '%s'...\n", src);
+            stdout.printf ("Reading file '%s'...\n", src); stdout.flush ();
             var file = GLib.File.new_for_path (src);
             try {
                 var stream = file.read ();
                 var len = stream.read (buf);
                 while ( len > 0 ) {
-                    stdout.printf ("Writing %u bytes...\n", (uint)len);
+                    stdout.printf ("Writing %u bytes...\n", (uint)len); stdout.flush ();
                     if ( this.write_archive.archive.write_data (buf, len) != len )
                         stdout.printf ("Failed writing data for file '%s' into write archive. Message: '%s'.\n",
-                                       src, this.write_archive.archive.error_string ());
+                                       src, this.write_archive.archive.error_string ()); stdout.flush ();
                     len = stream.read (buf);
                 }
             } catch ( GLib.Error e ) {
@@ -101,7 +103,7 @@ public class Util.Archivist : GLib.Object {
         }
 
         if (flush) {
-            stdout.printf ("Invoking flush...");
+            stdout.printf ("Invoking flush..."); stdout.flush ();
             this.flush.begin ();
             yield;
         }
@@ -141,10 +143,10 @@ public class Util.Archivist : GLib.Object {
         throws Util.ArchiveError
         requires ( this.writable () )
         requires ( this.write_archive != null ) {
-        stdout.printf ("Invoking simple_flush...\n");
+        stdout.printf ("Invoking simple_flush...\n"); stdout.flush ();
         simple_flush ();
 
-        stdout.printf ("Reopening archive...\n");
+        stdout.printf ("Reopening archive...\n"); stdout.flush ();
         open_write_archive ();
 
         // the written thing is readable now and we need to invoke copy_from_read on future flushes
@@ -155,23 +157,33 @@ public class Util.Archivist : GLib.Object {
     private void open_write_archive ()
         throws Util.ArchiveError
         requires ( this.writable () )
-        requires ( this.readable () || (this.format != null && this.compression != null) )
+        requires ( this.readable () || (this.format != null && this.filters != null) )
         requires ( this.write_archive == null )
         ensures  ( this.write_archive != null ) {
-        stdout.printf ("Open archive '%s~' for writing.\n", this.filename);
 
-        if ( this.readable () ) {
+        stdout.printf ("open_write_archive invoked.\n"); stdout.flush ();
+        if ( this.readable () && ((this.filters == null) || (this.format != null)) ) {
+            stdout.printf ("Auto-determine format and compression...\n"); stdout.flush ();
             var arch = new RawReadArchive (this.filename);
             unowned Archive.Entry unused;
+            stdout.printf ("Reading one header for format detection...\n"); stdout.flush ();
             if ( arch.archive.next_header (out unused) != Archive.Result.OK )
                 throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Unable to read header for format determination.");
-            stdout.printf ("Archive format is %d. (should: %d)", arch.archive.format (), Archive.Format.ISO9660_ROCKRIDGE);
-            this.write_archive = new RawWriteArchive.to_file (this.filename + "~",
-                                                              arch.archive.format (),
-                                                              arch.archive.filter_code (0));
-        } else {
-            this.write_archive = new RawWriteArchive.to_file (this.filename + "~", this.format, this.compression);
+
+            this.format = arch.archive.format ();
+            this.filters = new GLib.List<Archive.Filter> ();
+            stdout.printf ("There are %d filters.\n", arch.archive.filter_count ()); stdout.flush ();
+            for (int i = arch.archive.filter_count () - 1; i > 0; i--) {
+                stdout.printf ("Appending filter '%s' (%d).\n", arch.archive.filter_name (i - 1), i-1); stdout.flush ();
+                this.filters.append (arch.archive.filter_code (i - 1));
+            }
+            stdout.printf ("Finished filter determination.\n"); stdout.flush ();
         }
+
+        stdout.printf ("Open archive '%s~' for writing.\n", this.filename); stdout.flush ();
+        var tmp = this.filename + "~";
+        this.write_archive = new RawWriteArchive.to_file (tmp, this.format, this.filters);
+        stdout.printf ("Opened successfully.\n"); stdout.flush ();
     }
 
     private Archive.Entry get_entry_for_file (string filename, string dest_name)
@@ -192,17 +204,18 @@ public class Util.Archivist : GLib.Object {
         throws Util.ArchiveError
         requires ( this.readable () && this.writable () )
         requires ( this.write_archive != null ) {
-        stdout.printf ("Reading archive '%s' for copying...\n", this.filename);
+        stdout.printf ("Reading archive '%s' for copying...\n", this.filename); stdout.flush ();
         RawReadArchive arch = new RawReadArchive (this.filename);
         unowned Archive.Read rawread = arch.archive;
         unowned Archive.Write rawwrite = this.write_archive.archive;
         unowned Archive.Entry iterator;
 
+        // TODO log errors and throw an exception at the end
         while ( rawread.next_header (out iterator) == Archive.Result.OK ) {
             var s = (size_t) iterator.size ();
             if ( rawwrite.write_header (iterator) != Archive.Result.OK ) {
                 stdout.printf ("Failed writing header for file '%s' into write archive. Message: '%s'.\n",
-                               iterator.pathname (), rawwrite.error_string ());
+                               iterator.pathname (), rawwrite.error_string ()); stdout.flush ();
                 continue;
             }
             if ( s == 0 )
@@ -219,15 +232,16 @@ public class Util.Archivist : GLib.Object {
         stdout.printf ("Finished copy_from_read.\n");
     }
 
-    private void simple_flush () throws Util.ArchiveError {
+    // TODO make this private
+    public void simple_flush () throws Util.ArchiveError {
         debug ("Flushing changes to archive '%s'.", this.filename);
 
         if ( readable () )
             copy_from_read ();
 
-        stdout.printf ("Nulling write archive...\n");
+        stdout.printf ("Nulling write archive...\n"); stdout.flush ();
         this.write_archive = null; // destroy old archive so it gets closed
-        stdout.printf ("Nulled.\n");
+        stdout.printf ("Nulled.\n"); stdout.flush ();
        /* try {
             File buf = GLib.File.new_for_path (this.filename + "~");
             File dst = GLib.File.new_for_path (this.filename);

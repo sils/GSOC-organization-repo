@@ -1,6 +1,6 @@
 int main () {
-    stdout.printf ("\n\n\nReading archive...\n");
     try {
+        stdout.printf ("Extracting initrd.lz out of iso...\n"); stdout.flush ();
         var tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
 
         var extract = new Util.Archivist ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
@@ -9,11 +9,13 @@ int main () {
         extract.extract_files.begin (tbl);
         yield;
 
+        stdout.printf ("Constructing second archivist...\n"); stdout.flush ();
         var arch = new Util.Archivist ("testfiles/initrd.bz2", Util.ArchiveAccess.READWRITE);
         tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
         tbl.insert ("testfiles/preseed.cfg", "preseednew.cfg");
         arch.insert_files.begin (tbl, false);
         yield;
+        arch.simple_flush ();
 
         //arch.flush.begin ();
         //yield;
