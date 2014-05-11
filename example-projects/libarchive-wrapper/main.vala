@@ -15,10 +15,8 @@ int main () {
         tbl.insert ("testfiles/preseed.cfg", "preseednew.cfg");
         arch.insert_files.begin (tbl, false);
         yield;
-        arch.simple_flush ();
 
-        //arch.flush.begin ();
-        //yield;
+        arch = null;
     } catch (Util.ArchiveError e) {
         stdout.printf ("Exception with message: '%s'.\n", e.message);
         return 1;

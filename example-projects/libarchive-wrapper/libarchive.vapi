@@ -133,7 +133,7 @@ namespace Archive {
 	}
 
 	[Compact]
-	[CCode (cname="struct archive", cprefix="archive_", free_function="archive_free")]
+	[CCode (cname="struct archive", cprefix="archive_")]
 	public class Archive {
 		public int64 position_compressed ();
 		public int64 position_uncompressed ();

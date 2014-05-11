@@ -181,14 +181,12 @@ public class Util.Archivist : GLib.Object {
         }
 
         stdout.printf ("Open archive '%s~' for writing.\n", this.filename); stdout.flush ();
-        var tmp = this.filename + "~";
-        this.write_archive = new RawWriteArchive.to_file (tmp, this.format, this.filters);
-        stdout.printf ("Opened successfully.\n"); stdout.flush ();
+        this.write_archive = new RawWriteArchive.to_file (this.filename + "~", this.format, this.filters);
     }
 
     private Archive.Entry get_entry_for_file (string filename, string dest_name)
         requires ( filename  != "" )
-        requires ( dest_name != "" ){
+        requires ( dest_name != "" ) {
         Posix.Stat st;
         var result = new Archive.Entry ();
 
@@ -215,17 +213,24 @@ public class Util.Archivist : GLib.Object {
             var s = (size_t) iterator.size ();
             if ( rawwrite.write_header (iterator) != Archive.Result.OK ) {
                 stdout.printf ("Failed writing header for file '%s' into write archive. Message: '%s'.\n",
-                               iterator.pathname (), rawwrite.error_string ()); stdout.flush ();
+                               iterator.pathname (), rawwrite.error_string ());
                 continue;
             }
-            if ( s == 0 )
-                break;
+            if ( s == 0 ) {
+                stdout.printf ("File's empty! :(\n");
+                continue;
+            }
             //stdout.printf ("Copying file '%s' to write archive (%d bytes)...\n", iterator.pathname (), (int)s);
             void * buf = GLib.malloc (s);
-            if ( rawread.read_data (buf, s) != s )
+            if ( rawread.read_data (buf, s) != s ) {
                 stdout.printf ("Failed reading file '%s' for copying!\n", iterator.pathname ());
-            if ( rawwrite.write_data (buf, s) != s )
-                stdout.printf ("Failed writing file '%s' for copying! Msg: '%s'.\n", iterator.pathname (), rawwrite.error_string ());
+                continue;
+            }
+            if ( rawwrite.write_data (buf, s) != s ) {
+                stdout.printf ("Failed writing file '%s' for copying! Msg: '%s'.\n", iterator.pathname (), rawwrite.error_string ()); stdout.flush ();
+                continue;
+            }
+            stdout.flush ();
 
             free (buf);
         }
@@ -239,9 +244,7 @@ public class Util.Archivist : GLib.Object {
         if ( readable () )
             copy_from_read ();
 
-        stdout.printf ("Nulling write archive...\n"); stdout.flush ();
         this.write_archive = null; // destroy old archive so it gets closed
-        stdout.printf ("Nulled.\n"); stdout.flush ();
        /* try {
             File buf = GLib.File.new_for_path (this.filename + "~");
             File dst = GLib.File.new_for_path (this.filename);
