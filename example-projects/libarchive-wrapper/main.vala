@@ -10,7 +10,7 @@ int main () {
         yield;
 
         stdout.printf ("Constructing second archivist...\n"); stdout.flush ();
-        var arch = new Util.Archivist ("testfiles/initrd.bz2", Util.ArchiveAccess.READWRITE);
+        var arch = new Util.Archivist ("testfiles/initrd", Util.ArchiveAccess.READWRITE);
         tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
         tbl.insert ("testfiles/preseed.cfg", "preseednew.cfg");
         arch.insert_files.begin (tbl, false);
