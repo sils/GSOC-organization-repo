@@ -72,71 +72,18 @@ public class Util.Archivist : GLib.Object {
         throws Util.ArchiveError
         requires ( this.writable () )
         requires ( this.write_archive != null ) {
-        // tried to use a static private const but there was an error on c level
-        uint8 buf[8192];
+        this.write_archive.insert_files (src_dst);
 
-        foreach ( var src in src_dst.get_keys () ) {
-            var dst = src_dst.get (src);
-
-            // write header
-            var entry = get_entry_for_file (src, dst);
-            if ( this.write_archive.archive.write_header (entry) != Archive.Result.OK )
-                stdout.printf ("Failed writing header for file '%s' into write archive. Message: '%s'.\n",
-                               src, this.write_archive.archive.error_string ()); stdout.flush ();
-
-            // write data
-            stdout.printf ("Reading file '%s'...\n", src); stdout.flush ();
-            var file = GLib.File.new_for_path (src);
-            try {
-                var stream = file.read ();
-                var len = stream.read (buf);
-                while ( len > 0 ) {
-                    stdout.printf ("Writing %u bytes...\n", (uint)len); stdout.flush ();
-                    if ( this.write_archive.archive.write_data (buf, len) != len )
-                        stdout.printf ("Failed writing data for file '%s' into write archive. Message: '%s'.\n",
-                                       src, this.write_archive.archive.error_string ()); stdout.flush ();
-                    len = stream.read (buf);
-                }
-            } catch ( GLib.Error e ) {
-                throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'.", src);
-            }
-        }
-
-        if (flush) {
-            stdout.printf ("Invoking flush..."); stdout.flush ();
-            this.flush.begin ();
-            yield;
-        }
+        if (flush)
+            yield this.flush ();
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
     public async void extract_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError
         requires ( this.readable () ) {
-        if ( src_dst.size () == 0 )
-            return;
-
         RawReadArchive arch = new RawReadArchive (this.filename);
-        unowned Archive.Read raw = arch.archive;
-        unowned Archive.Entry iterator;
-        while ( raw.next_header (out iterator) == Archive.Result.OK ) {
-            //stdout.printf ("Path: '%s'\n", iterator.pathname ());
-            var dst = src_dst.get (iterator.pathname ());
-            if ( dst != null ) {
-                // w+, rewrite whole file
-                var fd = FileStream.open (dst, "w+");
-                raw.read_data_into_fd (fd.fileno ());
-                debug ("Extracted file '%s' from archive '%s'.", dst, this.filename);
-
-                src_dst.remove (iterator.pathname ());
-            } else {
-                raw.read_data_skip ();
-            }
-        }
-
-        if ( src_dst.size () != 0 ) {
-            throw new Util.ArchiveError.FILE_NOT_FOUND ("At least one specified file was not found in the archive.");
-        }
+        arch.extract_files (src_dst);
     }
 
     public async void flush ()
@@ -182,19 +129,6 @@ public class Util.Archivist : GLib.Object {
 
         stdout.printf ("Open archive '%s~' for writing.\n", this.filename); stdout.flush ();
         this.write_archive = new RawWriteArchive.to_file (this.filename + "~", this.format, this.filters);
-    }
-
-    private Archive.Entry get_entry_for_file (string filename, string dest_name)
-        requires ( filename  != "" )
-        requires ( dest_name != "" ) {
-        Posix.Stat st;
-        var result = new Archive.Entry ();
-
-        Posix.stat (filename, out st);
-        result.copy_stat (st);
-        result.set_pathname (dest_name);
-
-        return result;
     }
 
     // copies the read archive to the write archive (should only be used for flushing)
