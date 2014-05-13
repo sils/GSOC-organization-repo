@@ -17,7 +17,13 @@ class Util.ReadArchive : GLib.Object {
         this.archive.close ();
     }
 
-    
+    public void list_files () {
+        unowned Archive.Entry iterator;
+        while ( this.archive.next_header (out iterator) == Archive.Result.OK ) {
+            stdout.printf ("File: %s\n", iterator.pathname ());
+        }
+    }
+
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
     public void extract_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError {
@@ -60,13 +66,14 @@ class Util.ReadArchive : GLib.Object {
 
         do {
             var len = iterator.size ();
+            if ( len > 0 ) {
             void* buf = GLib.malloc ((size_t) len);
-            try {
-                this.archive.read_data (buf, (size_t) len);
-                result.insert_entry (iterator);
-                result.insert_data (buf, len);
-            } finally {
-                free (buf);
+                try {
+                    result.insert_entry (iterator);
+                    result.insert_data (buf, this.archive.read_data (buf, (size_t) len));
+                } finally {
+                    free (buf);
+                }
             }
         } while ( archive.next_header (out iterator) == Archive.Result.OK );
 

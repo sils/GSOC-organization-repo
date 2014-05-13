@@ -56,6 +56,11 @@ class Util.RWArchive : GLib.Object {
         this.read_archive.extract_files (src_dst);
     }
 
+    public void list_files ()
+        requires ( this.readable () ) {
+        this.read_archive.list_files ();
+    }
+
     public void insert_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError
         requires ( this.writable () ) {
