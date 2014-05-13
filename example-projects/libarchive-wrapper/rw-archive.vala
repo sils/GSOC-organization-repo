@@ -53,7 +53,19 @@ class Util.RWArchive : GLib.Object {
     public void extract_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError
         requires ( this.readable () ) {
-        read_archive.extract_files (src_dst);
+        this.read_archive.extract_files (src_dst);
+    }
+
+    public void insert_files (HashTable<string, string> src_dst)
+        throws Util.ArchiveError
+        requires ( this.writable () ) {
+        this.write_archive.insert_files (src_dst);
+    }
+
+    public void insert_file (string src, string dst)
+        throws Util.ArchiveError
+        requires ( this.writable () ) {
+        this.write_archive.insert_file (src, dst);
     }
 
     // PUBLIC FUNCTIONS

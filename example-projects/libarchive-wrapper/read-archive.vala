@@ -9,14 +9,8 @@ class Util.ReadArchive : GLib.Object {
     // TODO supported filters and formats
     public ReadArchive.from_file (string filename)
         throws Util.ArchiveError {
-        this.archive = new Archive.Read ();
-        // let libarchive handle format and compression
-        this.archive.support_format_all ();
-        this.archive.support_filter_all ();
-
-        if (this.archive.open_filename (filename, BLOCK_SIZE) != Archive.Result.OK)
-            throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive.");
         this.filename = filename;
+        this.open_archive ();
     }
 
     ~ReadArchive () {
@@ -62,7 +56,7 @@ class Util.ReadArchive : GLib.Object {
             var msg = "Error creating write archive for archive '%s'. Empty?";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
         }
-        var result = new WriteArchive.to_file (this.filename + "~", this.archive.format ());
+        var result = new WriteArchive.to_file (this.filename + "~", this.archive.format (), get_filters ());
 
         do {
             var len = iterator.size ();
@@ -78,20 +72,6 @@ class Util.ReadArchive : GLib.Object {
 
         this.reset_iterators ();
         return result;
-
-/*
-        // OLD CODE
-        stdout.printf ("Reading one header for format detection...\n"); stdout.flush ();
-        if ( this.archive.archive.next_header (out unused) != Archive.Result.OK )
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Unable to read header for format determination.");
-
-        this.filters = new GLib.List<Archive.Filter> ();
-        stdout.printf ("There are %d filters.\n", arch.archive.filter_count ()); stdout.flush ();
-        for (int i = arch.archive.filter_count () - 1; i > 0; i--) {
-            stdout.printf ("Appending filter '%s' (%d).\n", arch.archive.filter_name (i - 1), i-1); stdout.flush ();
-            this.filters.append (arch.archive.filter_code (i - 1));
-        }*/
-
     }
 
     // TODO find a better name for this
@@ -101,10 +81,24 @@ class Util.ReadArchive : GLib.Object {
             var msg = "Unable to reset iterators for archive '%s'. Error on trying to close, message: '%s'.";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, this.filename, this.archive.error_string ());
         }
-        if ( this.archive.open_filename (this.filename, BLOCK_SIZE) != Archive.Result.OK ) {
-            var msg = "Error reopening file for iterator reset for archive '%s'. Message: '%s'.";
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, this.filename, this.archive.error_string ());
-        }
+        this.open_archive ();
+    }
+
+    private void open_archive () throws Util.ArchiveError {
+        this.archive = new Archive.Read ();
+        // let libarchive handle format and compression
+        this.archive.support_format_all ();
+        this.archive.support_filter_all ();
+
+        if (this.archive.open_filename (filename, BLOCK_SIZE) != Archive.Result.OK)
+            throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive.");
+    }
+
+    private GLib.List<Archive.Filter> get_filters () {
+        var filters = new GLib.List<Archive.Filter> ();
+        for (var i = this.archive.filter_count () - 1; i > 0; i--)
+            filters.append (this.archive.filter_code (i - 1));
+        return filters;
     }
 }
 

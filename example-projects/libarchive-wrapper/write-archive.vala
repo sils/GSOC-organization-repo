@@ -31,22 +31,15 @@ public class Util.WriteArchive : GLib.Object {
     public void insert_file (string src, string dst) throws Util.ArchiveError {
         var entry = get_entry_for_file (src, dst);
         var len = entry.size ();
-        if ( len > 1024*1024*1024 )
-            warning ("Be aware that this library is not optimized for use with big files.");
-        void* buf = GLib.malloc ((size_t) len);
         try {
             // get file info, read data into memory
             var file = GLib.File.new_for_path (src);
             var stream = file.read ();
-            var readlen = stream.read ((uint8[]) buf);
-            if ( readlen != len )
-                throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed reading file '%s'.", src);
+            var bytes = stream.read_bytes ((size_t) len);
             this.insert_entry (entry);
-            this.insert_data (buf, len);
+            this.insert_data (bytes.get_data (), len);
         } catch ( GLib.Error e ) {
-            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'.", src);
-        } finally {
-            free (buf);
+            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'. Message: '%s'.", src, e.message);
         }
     }
 
