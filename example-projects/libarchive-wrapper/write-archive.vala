@@ -2,11 +2,11 @@
 
 // A non-threadsafe wrapper for libarchives write archive
 public class Util.WriteArchive : GLib.Object {
-    public Archive.Write archive;
+    private Archive.Write archive;
 
     public WriteArchive.to_file (string filename,
-                                    Archive.Format format,
-                                    GLib.List<Archive.Filter>? filters = null)
+                                 Archive.Format format,
+                                 GLib.List<Archive.Filter>? filters = null)
         throws Util.ArchiveError {
         this.archive = new Archive.Write ();
         if ( this.archive.set_format (format) != Archive.Result.OK ) {

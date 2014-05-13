@@ -3,13 +3,21 @@
 class Util.ReadArchive : GLib.Object {
     // This is the example block size from the libarchive website
     private static const int BLOCK_SIZE = 10240;
-    public Archive.Read archive;
+    private Archive.Read archive;
     private string filename;
+    private Archive.Format? format = null;
+    private GLib.List<Archive.Filter>? filters = null;
+
 
     // TODO supported filters and formats
-    public ReadArchive.from_file (string filename)
+    public ReadArchive.from_file (string filename,
+                                  Archive.Format? format = null,
+                                  GLib.List<Archive.Filter>? filters = null)
         throws Util.ArchiveError {
         this.filename = filename;
+        this.format = format;
+        if ( filters != null )
+            this.filters = filters.copy ();
         this.open_archive ();
     }
 
@@ -92,12 +100,23 @@ class Util.ReadArchive : GLib.Object {
 
     private void open_archive () throws Util.ArchiveError {
         this.archive = new Archive.Read ();
-        // let libarchive handle format and compression
-        this.archive.support_format_all ();
+        if ( this.format == null )
+            this.archive.support_format_all ();
+        else
+            this.archive.set_format (this.format);
         this.archive.support_filter_all ();
 
         if (this.archive.open_filename (filename, BLOCK_SIZE) != Archive.Result.OK)
-            throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive.");
+            throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive. Error: '%s'.",
+                                                              this.archive.error_string ());
+    }
+
+    private void set_filter_stack () throws Util.ArchiveError {
+        foreach ( var filter in this.filters ) {
+            if ( this.archive.append_filter (filter) != Archive.Result.OK )
+                throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed appending filter. Message: '%s'.",
+                                                                   this.archive.error_string ());
+        }
     }
 
     private GLib.List<Archive.Filter> get_filters () {

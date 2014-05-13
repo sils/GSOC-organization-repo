@@ -184,20 +184,40 @@ namespace Archive {
 		public Result support_filter_bzip2 ();
 		public Result support_filter_compress ();
 		public Result support_filter_gzip ();
+		public Result support_filter_grzip ();
+		public Result support_filter_lrzip ();
+		public Result support_filter_lzip ();
 		public Result support_filter_lzma ();
+		public Result support_filter_lzop ();
 		public Result support_filter_none ();
-		public Result support_filter_xz ();
 		public Result support_filter_program (string command);
+		// TODO support_filter_program_signature (string, const void *, size_t)
+		public Result support_filter_rpm ();
+		public Result support_filter_uu ();
+		public Result support_filter_xz ();
+		public Result support_format_7zip ();
 		public Result support_format_all ();
 		public Result support_format_ar ();
+		public Result support_format_by_code (Format format_code);
+		public Result support_format_cab ();
 		public Result support_format_cpio ();
 		public Result support_format_empty ();
 		public Result support_format_gnutar ();
 		public Result support_format_iso9660 ();
+		public Result support_format_lha ();
 		public Result support_format_mtree ();
+		public Result support_format_rar ();
 		public Result support_format_raw ();
 		public Result support_format_tar ();
+		public Result support_format_xar ();
 		public Result support_format_zip ();
+		public Result support_format_zip_streamable ();
+		public Result support_format_zip_seekable ();
+
+		public Result set_format (Format format_code);
+		public Result append_filter (Filter filter_code);
+		public Result append_filter_program (string cmd);
+		// TODO append_filter_program_signature (string, const void *, size_t);
 
 		public Result open (
 			[CCode (delegate_target_pos = 0.9)] OpenCallback ocb,
