@@ -1,6 +1,6 @@
 int main () {
     try {
-        var tst = new Util.RWArchive.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
+        var tst = new Util.RWArchive.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READWRITE);
         var tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
         tbl.insert ("initrd.lz", "testfiles/initrd");
         tbl.insert ("md5sum.txt", "testfiles/md5sum.txt");

@@ -13,24 +13,29 @@ class Util.RWArchive : GLib.Object {
     private WriteArchive? write_archive = null;
 
     // CONSTRUCTION|DESTRUCTION
-    // if open only with write access, format and filters have to be specified. If not they will be ignored.
+    // if open only with write access, format have to be specified. If not they will be ignored.
+    // filters will assumed NONE if not specified otherwise or information available from existent archive
     public RWArchive.from_file (string filename,
                       ArchiveAccess access,
                       Archive.Format? format = null,
                       GLib.List<Archive.Filter>? filters = null)
         throws Util.ArchiveError
         requires ( (access & 0x3) != 0 )
-        requires ( (format != null && filters != null) || (access != Util.ArchiveAccess.WRITE) ) {
+        requires ( (format != null) || (access != Util.ArchiveAccess.WRITE) ) {
         stdout.printf ("CONSTRUCT Archivist for file '%s'\n", filename); stdout.flush ();
         this.access = access;
         this.filename = filename;
         this.format = format;
-        this.filters = filters.copy ();
+        if ( filters != null )
+            this.filters = filters.copy ();
+        else // no filter
+            this.filters = new GLib.List<Archive.Filter> ();
 
         if ( this.readable () ) {
             this.read_archive = new ReadArchive.from_file (filename);
             if ( this.writable () ) {
-                // TODO
+                stdout.printf ("Creating write archive from read archive.\n");
+                this.write_archive = this.read_archive.create_writable (this.filename + "~");
             }
         } else {
             // due to the preconditions: writable () && (format != null) && (filters != null)
@@ -40,6 +45,8 @@ class Util.RWArchive : GLib.Object {
     
     ~RWArchive () {
         stdout.printf ("DESTROY Archivist for file '%s'\n", filename); stdout.flush ();
+        if ( readable () && writable () )
+            this.flush ();
     }
     
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
@@ -58,4 +65,11 @@ class Util.RWArchive : GLib.Object {
         return (this.access & ArchiveAccess.WRITE) != 0;
     }
     // TODO
+
+    // PRIVATE FUNCTIONS
+    private void flush ()
+        throws Util.ArchiveError
+        requires ( readable () && writable () ) {
+        // TODO copy write archive to original location
+    }
 }

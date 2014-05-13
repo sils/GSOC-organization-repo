@@ -31,17 +31,19 @@ class Util.ReadArchive : GLib.Object {
             return;
 
         unowned Archive.Entry iterator;
-        while ( archive.next_header (out iterator) == Archive.Result.OK ) {
+        while ( this.archive.next_header (out iterator) == Archive.Result.OK ) {
             var dst = src_dst.get (iterator.pathname ());
             if ( dst != null ) {
                 // w+, rewrite whole file
                 var fd = FileStream.open (dst, "w+");
-                archive.read_data_into_fd (fd.fileno ());
+                if ( this.archive.read_data_into_fd (fd.fileno ()) != Archive.Result.OK )
+                    throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Unable to extract file '%s'. Message: '%s'.",
+                                                                      dst, this.archive.error_string ());
                 debug ("Extracted file '%s' from archive '%s'.", dst, this.filename);
 
                 src_dst.remove (iterator.pathname ());
             } else {
-                archive.read_data_skip ();
+                this.archive.read_data_skip ();
             }
         }
 
@@ -52,14 +54,32 @@ class Util.ReadArchive : GLib.Object {
         this.reset_iterators ();
     }
 
-/* TODO
     // creates a new archive in that you can write but that has the same format, filter and contents as this
-    public RawWriteArchive create_writable () throws Util.ArchiveError {
-        var format = archive.archive.format ();
-        Archive.Entry entry;
+    public WriteArchive create_writable (string filename) throws Util.ArchiveError {
+        unowned Archive.Entry iterator;
+        if ( archive.next_header (out iterator) != Archive.Result.OK ) {
+            // its empty or something went wrong - throw exception
+            var msg = "Error creating write archive for archive '%s'. Empty?";
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
+        }
+        var result = new WriteArchive.to_file (this.filename + "~", this.archive.format ());
 
+        do {
+            var len = iterator.size ();
+            void* buf = GLib.malloc ((size_t) len);
+            try {
+                this.archive.read_data (buf, (size_t) len);
+                result.insert_entry (iterator);
+                result.insert_data (buf, len);
+            } finally {
+                free (buf);
+            }
+        } while ( archive.next_header (out iterator) == Archive.Result.OK );
 
+        this.reset_iterators ();
+        return result;
 
+/*
         // OLD CODE
         stdout.printf ("Reading one header for format detection...\n"); stdout.flush ();
         if ( this.archive.archive.next_header (out unused) != Archive.Result.OK )
@@ -70,16 +90,21 @@ class Util.ReadArchive : GLib.Object {
         for (int i = arch.archive.filter_count () - 1; i > 0; i--) {
             stdout.printf ("Appending filter '%s' (%d).\n", arch.archive.filter_name (i - 1), i-1); stdout.flush ();
             this.filters.append (arch.archive.filter_code (i - 1));
-        }
-        
-        this.reset_iterators ();
-    }*/
+        }*/
+
+    }
 
     // TODO find a better name for this
     private void reset_iterators () throws Util.ArchiveError {
         // reopen archive to reset header iterator - TODO better possibility?
-        this.archive.close ();
-        this.archive.open_filename (this.filename, BLOCK_SIZE);
+        if ( this.archive.close () != Archive.Result.OK ) {
+            var msg = "Unable to reset iterators for archive '%s'. Error on trying to close, message: '%s'.";
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, this.filename, this.archive.error_string ());
+        }
+        if ( this.archive.open_filename (this.filename, BLOCK_SIZE) != Archive.Result.OK ) {
+            var msg = "Error reopening file for iterator reset for archive '%s'. Message: '%s'.";
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, this.filename, this.archive.error_string ());
+        }
     }
 }
 

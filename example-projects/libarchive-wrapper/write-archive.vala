@@ -6,15 +6,15 @@ public class Util.WriteArchive : GLib.Object {
 
     public WriteArchive.to_file (string filename,
                                     Archive.Format format,
-                                    GLib.List<Archive.Filter> filters)
+                                    GLib.List<Archive.Filter>? filters = null)
         throws Util.ArchiveError {
         this.archive = new Archive.Write ();
         if ( this.archive.set_format (format) != Archive.Result.OK )
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting format (%d) for archive. Message: '%s'.",
                                                                format, this.archive.error_string ());
 
-        foreach (var filter in filters)
-            add_filter (filter);
+        if ( filters != null )
+            this.add_filters (filters);
         this.archive.open_filename (filename);
     }
 
@@ -39,18 +39,10 @@ public class Util.WriteArchive : GLib.Object {
             var file = GLib.File.new_for_path (src);
             var stream = file.read ();
             var readlen = stream.read ((uint8[]) buf);
-            
-            
-            // write header
-            if ( this.archive.write_header (entry) != Archive.Result.OK )
-                throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing header '%s' to archive. ('%s')",
-                                                                  src, dst);
-            // write data
             if ( readlen != len )
                 throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed reading file '%s'.", src);
-            if ( this.archive.write_data (buf, readlen) != readlen )
-                throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing header '%s' to archive. ('%s')",
-                                                                  src, dst);
+            this.insert_entry (entry);
+            this.insert_data (buf, len);
         } catch ( GLib.Error e ) {
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'.", src);
         } finally {
@@ -58,47 +50,26 @@ public class Util.WriteArchive : GLib.Object {
         }
     }
 
-    private void add_filter (Archive.Filter compression)
-        throws Util.ArchiveError
-        requires ( compression == Archive.Filter.NONE     ||
-                   compression == Archive.Filter.GZIP     ||
-                   compression == Archive.Filter.BZIP2    ||
-                   compression == Archive.Filter.COMPRESS ||
-                   compression == Archive.Filter.LZMA     ||
-                   compression == Archive.Filter.LZIP     ||
-                   compression == Archive.Filter.XZ ) {
-        Archive.Result err;
-        stdout.printf ("Adding filter %d.\n", compression); stdout.flush ();
-        switch ( compression ) {
-        case Archive.Filter.NONE:
-            err = Archive.Result.OK;
-            break;
-        case Archive.Filter.GZIP:
-            err = this.archive.add_filter_gzip ();
-            break;
-        case Archive.Filter.BZIP2:
-            err = this.archive.add_filter_bzip2 ();
-            break;
-        case Archive.Filter.COMPRESS:
-            err = this.archive.add_filter_compress ();
-            break;
-        case Archive.Filter.LZMA:
-            err = this.archive.add_filter_lzma ();
-            break;
-        case Archive.Filter.LZIP:
-            err = this.archive.add_filter_lzip ();
-            break;
-        case Archive.Filter.XZ:
-            err = this.archive.add_filter_xz ();
-            break;
-        default:
-            err = Archive.Result.FAILED;
-            break;
+    public void add_filters (GLib.List<Archive.Filter> filters) throws Util.ArchiveError {
+        foreach ( var filter in filters ) {
+            if ( this.archive.add_filter (filter) != Archive.Result.OK )
+                throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting filter. Message: '%s'.",
+                                                                   this.archive.error_string ());
         }
+    }
 
-        if ( err != Archive.Result.OK )
-            throw new Util.ArchiveError.UNKNOWN ("Failed setting archive compression (Message: %s).",
-                                                 this.archive.error_string ());
+    public void insert_entry (Archive.Entry entry) throws Util.ArchiveError {
+        // write header
+        if ( this.archive.write_header (entry) != Archive.Result.OK )
+            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing header to archive. Message: '%s'.",
+                                                              this.archive.error_string ());
+    }
+
+    public void insert_data (void* data, int64 len) throws Util.ArchiveError {
+        // write data
+        if ( this.archive.write_data (data, (size_t) len) != len )
+            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing data to archive. Message: '%s'.",
+                                                              this.archive.error_string ());
     }
 
     private Archive.Entry get_entry_for_file (string filename, string dest_name)
