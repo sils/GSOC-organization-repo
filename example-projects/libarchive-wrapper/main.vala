@@ -14,7 +14,7 @@ int main () {
         stdout.printf ("Time: %f s\n", timer.elapsed (null));
 
         tst = new Util.RWArchive.from_file ("testfiles/initrd~", Util.ArchiveAccess.READ);
-        tst.list_files ();
+        //tst.list_files ();
     } catch (Util.ArchiveError e) {
         stdout.printf ("Exception with message: '%s'.\n", e.message);
         return 1;
