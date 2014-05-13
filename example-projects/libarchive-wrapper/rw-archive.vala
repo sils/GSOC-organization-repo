@@ -22,7 +22,6 @@ class Util.RWArchive : GLib.Object {
         throws Util.ArchiveError
         requires ( (access & 0x3) != 0 )
         requires ( (format != null) || (access != Util.ArchiveAccess.WRITE) ) {
-        stdout.printf ("CONSTRUCT Archivist for file '%s'\n", filename); stdout.flush ();
         this.access = access;
         this.filename = filename;
         this.format = format;
@@ -41,12 +40,6 @@ class Util.RWArchive : GLib.Object {
             // due to the preconditions: writable () && (format != null) && (filters != null)
             this.write_archive = new WriteArchive.to_file (filename, format, filters);
         }
-    }
-    
-    ~RWArchive () {
-        stdout.printf ("DESTROY Archivist for file '%s'\n", filename); stdout.flush ();
-        if ( readable () && writable () )
-            this.flush ();
     }
     
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
@@ -80,13 +73,5 @@ class Util.RWArchive : GLib.Object {
 
     public bool writable () {
         return (this.access & ArchiveAccess.WRITE) != 0;
-    }
-    // TODO
-
-    // PRIVATE FUNCTIONS
-    private void flush ()
-        throws Util.ArchiveError
-        requires ( readable () && writable () ) {
-        // TODO copy write archive to original location
     }
 }
