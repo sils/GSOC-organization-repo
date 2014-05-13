@@ -9,9 +9,10 @@ public class Util.WriteArchive : GLib.Object {
                                     GLib.List<Archive.Filter>? filters = null)
         throws Util.ArchiveError {
         this.archive = new Archive.Write ();
-        if ( this.archive.set_format (format) != Archive.Result.OK )
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting format (%d) for archive. Message: '%s'.",
-                                                               format, this.archive.error_string ());
+        if ( this.archive.set_format (format) != Archive.Result.OK ) {
+            var msg = "Failed setting format (%d) for archive. Message: '%s'.";
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, format, this.archive.error_string ());
+        }
 
         if ( filters != null )
             this.add_filters (filters);
@@ -39,7 +40,8 @@ public class Util.WriteArchive : GLib.Object {
             this.insert_entry (entry);
             this.insert_data (bytes.get_data (), len);
         } catch ( GLib.Error e ) {
-            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'. Message: '%s'.", src, e.message);
+            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'. Message: '%s'.",
+                                                              src, e.message);
         }
     }
 

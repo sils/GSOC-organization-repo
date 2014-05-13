@@ -81,9 +81,8 @@ class Util.ReadArchive : GLib.Object {
         return result;
     }
 
-    // TODO find a better name for this
     private void reset_iterators () throws Util.ArchiveError {
-        // reopen archive to reset header iterator - TODO better possibility?
+        // reopen archive to reset header iterator - FIXME better possibility?
         if ( this.archive.close () != Archive.Result.OK ) {
             var msg = "Unable to reset iterators for archive '%s'. Error on trying to close, message: '%s'.";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, this.filename, this.archive.error_string ());
