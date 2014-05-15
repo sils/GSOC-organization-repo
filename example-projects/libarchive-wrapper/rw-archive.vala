@@ -41,7 +41,9 @@ class Util.RWArchive : GLib.Object {
             this.write_archive = new WriteArchive.to_file (filename, format, filters);
         }
     }
-    
+
+    // TODO move the ~ file to the original in the destructor
+
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
     public void extract_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError
@@ -49,6 +51,7 @@ class Util.RWArchive : GLib.Object {
         this.read_archive.extract_files (src_dst);
     }
 
+    // TODO return a list of filenames here
     public void list_files ()
         requires ( this.readable () ) {
         this.read_archive.list_files ();
