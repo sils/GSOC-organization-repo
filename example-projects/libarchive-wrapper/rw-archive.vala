@@ -80,11 +80,13 @@ class Util.RWArchive : GLib.Object {
         return (this.access & ArchiveAccess.WRITE) != 0;
     }
 
-    private void flush () {
+    private void flush ()
+        requires ( this.readable () )
+        requires ( this.writable () ) {
         var src = GLib.File.new_for_path (this.filename + "~");
         var dst = GLib.File.new_for_path (this.filename);
         try {
             src.move (dst, FileCopyFlags.OVERWRITE);
-        } catch (Error e) {}
+        } catch (Error e) {} // we can't do anything about this during destruction
     }
 }
