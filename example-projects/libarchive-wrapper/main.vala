@@ -13,7 +13,7 @@ int main () {
         timer.stop ();
         stdout.printf ("Time: %f s\n", timer.elapsed (null));
 
-        tst = new Util.RWArchive.from_file ("testfiles/initrd~", Util.ArchiveAccess.READ);
+        tst = new Util.RWArchive.from_file ("testfiles/initrd", Util.ArchiveAccess.READ);
         foreach (var file in tst.get_file_list ()) {
             if (file == "preseed.cfg") {
                 stdout.printf ("Preseed.cfg is in the new archive.\n");

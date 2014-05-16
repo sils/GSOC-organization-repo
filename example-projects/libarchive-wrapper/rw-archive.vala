@@ -43,7 +43,8 @@ class Util.RWArchive : GLib.Object {
     }
 
     ~RWArchive () {
-        // TODO move the ~ file to the original in the destructor
+        if ( this.readable () && this.writable () )
+            this.flush ();
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
@@ -77,5 +78,13 @@ class Util.RWArchive : GLib.Object {
 
     public bool writable () {
         return (this.access & ArchiveAccess.WRITE) != 0;
+    }
+
+    private void flush () {
+        var src = GLib.File.new_for_path (this.filename + "~");
+        var dst = GLib.File.new_for_path (this.filename);
+        try {
+            src.move (dst, FileCopyFlags.OVERWRITE);
+        } catch (Error e) {}
     }
 }
