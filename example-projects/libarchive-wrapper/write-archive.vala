@@ -32,16 +32,18 @@ public class Util.WriteArchive : GLib.Object {
     public void insert_file (string src, string dst) throws Util.ArchiveError {
         var entry = get_entry_for_file (src, dst);
         var len = entry.size ();
+        var buf = GLib.malloc ((size_t) len);
         try {
             // get file info, read data into memory
-            var file = GLib.File.new_for_path (src);
-            var stream = file.read ();
-            var bytes = stream.read_bytes ((size_t) len);
+            var filestream = GLib.FileStream.open (src, "r");
+            filestream.read ((uint8[]) buf, (size_t) len);
             this.insert_entry (entry);
-            this.insert_data (bytes.get_data (), len);
+            this.insert_data ((uint8[]) buf, len);
         } catch ( GLib.Error e ) {
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'. Message: '%s'.",
                                                               src, e.message);
+        } finally {
+            GLib.free (buf);
         }
     }
 
