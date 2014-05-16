@@ -18,8 +18,7 @@
  *
  * Author:
  * 	Julian Andres Klode <jak@jak-linux.org>
- * Updated to libarchive 3:
- * 	Lasse Schuirmann <lasse.schuirmann@gmail.com>
+ *
  */
 
 
@@ -45,7 +44,7 @@ namespace Archive {
 	// In reality a "void (*_progress_func)(void *)" parameter without name.
 	public delegate void ExtractProgressCallback ();
 
-	[CCode (cprefix="ARCHIVE_", cname="int", has_type_id = false)]
+	[CCode (cprefix="ARCHIVE_", cname="int")]
 	public enum Result {
 		EOF,
 		OK,
@@ -55,7 +54,7 @@ namespace Archive {
 	}
 
 	// see libarchive/archive.h, l. 218 ff.
-	[CCode (cname="int", has_type_id = false)]
+	[CCode (cname="int")]
 	public enum Filter {
 		NONE,
 		GZIP,
@@ -72,7 +71,7 @@ namespace Archive {
 		GRZIP
 	}
 
-	[CCode (cname="int", has_type_id = false)]
+	[CCode (cname="int")]
 	[Deprecated (since="3.0", replacement="Filter")]
 	public enum Compression {
 		NONE,
@@ -88,7 +87,7 @@ namespace Archive {
 		LRZIP
 	}
 
-	[CCode (cname="int", has_type_id = false)]
+	[CCode (cname="int")]
 	public enum Format {
 		BASE_MASK,
 		CPIO,
@@ -115,7 +114,7 @@ namespace Archive {
 		MTREE
 	}
 
-	[CCode (cprefix="ARCHIVE_EXTRACT_", cname="int", has_type_id = false)]
+	[CCode (cprefix="ARCHIVE_EXTRACT_", cname="int")]
 	public enum ExtractFlags {
 		OWNER,
 		PERM,
@@ -235,13 +234,17 @@ namespace Archive {
 		public Result open_filename (string filename, size_t _block_size);
 		public Result open_memory (void* buff, size_t size);
 		public Result open_fd (int fd, size_t block_size);
+#if POSIX
+		public Result open_FILE (Posix.FILE file);
+#else
 		public Result open_FILE (GLib.FileStream file);
+#endif
 		public Result next_header (out unowned Entry entry);
 		public int64 header_position ();
 
 		[CCode (cname="archive_read_data")]
 		public ssize_t read_data (void* buffer, size_t size);
-		[CCode (cname="archive_read_data_block")]
+		[CCode (cname="archive_read_block")]
 		public Result read_data_block (out void* buff, out size_t size, out Posix.off_t offset);
 		[CCode (cname="archive_read_data_skip")]
 		public Result read_data_skip ();
@@ -321,7 +324,11 @@ namespace Archive {
 		);
 		public Result open_fd (int fd);
 		public Result open_filename (string filename);
+#if POSIX
+		public Result open_FILE (Posix.FILE file);
+#else
 		public Result open_FILE (GLib.FileStream file);
+#endif
 		public Result open_memory (void* buffer, size_t buff_size, out size_t used);
 
 		[CCode (cname="archive_write_header")]

@@ -42,7 +42,9 @@ class Util.RWArchive : GLib.Object {
         }
     }
 
-    // TODO move the ~ file to the original in the destructor
+    ~RWArchive () {
+        // TODO move the ~ file to the original in the destructor
+    }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
     public void extract_files (HashTable<string, string> src_dst)
@@ -51,10 +53,9 @@ class Util.RWArchive : GLib.Object {
         this.read_archive.extract_files (src_dst);
     }
 
-    // TODO return a list of filenames here
-    public void list_files ()
+    public GLib.List<string> get_file_list ()
         requires ( this.readable () ) {
-        this.read_archive.list_files ();
+        return this.read_archive.get_file_list ();
     }
 
     public void insert_files (HashTable<string, string> src_dst)

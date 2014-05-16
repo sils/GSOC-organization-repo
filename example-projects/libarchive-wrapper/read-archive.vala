@@ -25,11 +25,13 @@ class Util.ReadArchive : GLib.Object {
         this.archive.close ();
     }
 
-    public void list_files () {
+    public GLib.List<string> get_file_list () {
+        var result = new GLib.List<string> ();
         unowned Archive.Entry iterator;
         while ( this.archive.next_header (out iterator) == Archive.Result.OK ) {
-            stdout.printf ("File: %s\n", iterator.pathname ());
+            result.append (iterator.pathname ());
         }
+        return result;
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
