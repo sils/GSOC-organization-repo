@@ -106,7 +106,10 @@ class Util.ReadArchive : GLib.Object {
             this.archive.support_format_all ();
         else
             this.archive.set_format (this.format);
-        this.archive.support_filter_all ();
+        if ( this.filters == null )
+            this.archive.support_filter_all ();
+        else
+            this.set_filter_stack ();
 
         if (this.archive.open_filename (filename, BLOCK_SIZE) != Archive.Result.OK)
             throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive. Error: '%s'.",

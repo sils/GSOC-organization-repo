@@ -12,6 +12,14 @@ int main () {
         tst = null;
         timer.stop ();
         stdout.printf ("Time: %f s\n", timer.elapsed (null));
+
+        tst = new Util.RWArchive.from_file ("testfiles/initrd~", Util.ArchiveAccess.READ);
+        foreach (var file in tst.get_file_list ()) {
+            if (file == "preseed.cfg") {
+                stdout.printf ("Preseed.cfg is in the new archive.\n");
+                break;
+            }
+        }
     } catch (Util.ArchiveError e) {
         stdout.printf ("Exception with message: '%s'.\n", e.message);
         return 1;
