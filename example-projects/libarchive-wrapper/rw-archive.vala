@@ -33,7 +33,6 @@ class Util.RWArchive : GLib.Object {
         if ( this.readable () ) {
             this.read_archive = new ReadArchive.from_file (filename);
             if ( this.writable () ) {
-                stdout.printf ("Creating write archive from read archive.\n");
                 this.write_archive = this.read_archive.create_writable (this.filename + "~");
             }
         } else {
