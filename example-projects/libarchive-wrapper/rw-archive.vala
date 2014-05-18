@@ -47,20 +47,20 @@ class Util.Archivist : GLib.Object {
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
-    public void extract_files (HashTable<string, string> src_dst)
+    public void extract_files (string[] src, string[] dst)
                                throws Util.ArchiveError
                                requires (readable ()) {
-        archive_reader.extract_files (src_dst);
+        archive_reader.extract_files (src, dst);
     }
 
     public GLib.List<string> get_file_list () requires (readable ()) {
         return archive_reader.get_file_list ();
     }
 
-    public void insert_files (HashTable<string, string> src_dst)
+    public void insert_files (string[] src, string[] dst)
                               throws Util.ArchiveError
                               requires (writable ()) {
-        archive_writer.insert_files (src_dst);
+        archive_writer.insert_files (src, dst);
     }
 
     public void insert_file (string src, string dst)

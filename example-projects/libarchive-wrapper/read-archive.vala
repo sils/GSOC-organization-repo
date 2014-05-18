@@ -35,15 +35,22 @@ class Util.ArchiveReader : GLib.Object {
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
-    public void extract_files (HashTable<string, string> src_dst)
-                               throws Util.ArchiveError {
-        if (src_dst.size () == 0)
+    public void extract_files (string[] src, string[] dsts)
+                               throws Util.ArchiveError
+                               requires (src.length == dsts.length) {
+        if (src.length == 0)
             return;
 
         unowned Archive.Entry iterator;
         uint i = 0;
         while (archive.next_header (out iterator) == Archive.Result.OK) {
-            var dst = src_dst.get (iterator.pathname ());
+            string dst = null;
+            for (uint j = 0; j < src.length; j++) {
+                if (src[j] == iterator.pathname ()) {
+                    dst = dsts[j];
+                    break;
+                }
+            }
             if (dst != null) {
                 // w+, rewrite whole file
                 var fd = FileStream.open (dst, "w+");
@@ -57,7 +64,7 @@ class Util.ArchiveReader : GLib.Object {
             }
         }
 
-        if (src_dst.size () != i) {
+        if (src.length != i) {
             throw new Util.ArchiveError.FILE_NOT_FOUND ("At least one specified file was not found in the archive.");
         }
         

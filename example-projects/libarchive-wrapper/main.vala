@@ -1,9 +1,7 @@
 int main () {
     try {
         var tst = new Util.Archivist.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
-        var tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
-        tbl.insert ("casper/initrd.lz", "testfiles/initrd");
-        tst.extract_files (tbl);
+        tst.extract_files ({"casper/initrd.lz"}, {"testfiles/initrd"});
         tst = null;
 
         Timer timer = new Timer ();

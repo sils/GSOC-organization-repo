@@ -23,9 +23,11 @@ public class Util.ArchiveWriter : GLib.Object {
         archive.close ();
     }
 
-    public void insert_files (HashTable<string, string> src_dst) throws Util.ArchiveError {
-        foreach (var src in src_dst.get_keys ())
-            insert_file (src, src_dst.get (src));
+    public void insert_files (string[] src, string[] dst)
+                              throws Util.ArchiveError
+                              requires (src.length == dst.length) {
+        for (var i = 0; i < src.length; i++)
+            insert_file (src[i], dst[i]);
     }
 
     // while dst is the destination relative to archive root
@@ -67,9 +69,7 @@ public class Util.ArchiveWriter : GLib.Object {
                                                               archive.error_string ());
     }
 
-    private Archive.Entry get_entry_for_file (string filename, string dest_name)
-                                              requires (filename  != "")
-                                              requires (dest_name != "") {
+    private Archive.Entry get_entry_for_file (string filename, string dest_name) {
         Posix.Stat st;
         var result = new Archive.Entry ();
 
