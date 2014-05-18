@@ -77,13 +77,9 @@ class Util.ArchiveReader : GLib.Object {
         do {
             var len = iterator.size ();
             if (len > 0) {
-            void* buf = GLib.malloc ((size_t) len);
-                try {
-                    result.insert_entry (iterator);
-                    result.insert_data (buf, archive.read_data (buf, (size_t) len));
-                } finally {
-                    free (buf);
-                }
+            var buf = new uint8[len];
+            result.insert_entry (iterator);
+            result.insert_data (buf, archive.read_data (buf, (size_t) len));
             }
         } while (archive.next_header (out iterator) == Archive.Result.OK);
 
