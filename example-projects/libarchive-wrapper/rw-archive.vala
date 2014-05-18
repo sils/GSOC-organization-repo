@@ -53,6 +53,10 @@ class Util.Archivist : GLib.Object {
         archive_reader.extract_files (src, dst);
     }
 
+    public void extract_file (string src, string dst) throws Util.ArchiveError {
+        extract_files ({src}, {dst});
+    }
+
     public GLib.List<string> get_file_list () requires (readable ()) {
         return archive_reader.get_file_list ();
     }

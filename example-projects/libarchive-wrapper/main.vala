@@ -1,7 +1,7 @@
 int main () {
     try {
         var tst = new Util.Archivist.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
-        tst.extract_files ({"casper/initrd.lz"}, {"testfiles/initrd"});
+        tst.extract_file ("casper/initrd.lz", "testfiles/initrd");
         tst = null;
 
         Timer timer = new Timer ();
