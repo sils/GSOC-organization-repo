@@ -41,6 +41,7 @@ class Util.ArchiveReader : GLib.Object {
             return;
 
         unowned Archive.Entry iterator;
+        uint i = 0;
         while (archive.next_header (out iterator) == Archive.Result.OK) {
             var dst = src_dst.get (iterator.pathname ());
             if (dst != null) {
@@ -50,14 +51,13 @@ class Util.ArchiveReader : GLib.Object {
                     throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Unable to extract file '%s'. Message: '%s'.",
                                                                       dst, archive.error_string ());
                 debug ("Extracted file '%s' from archive '%s'.", dst, filename);
-
-                src_dst.remove (iterator.pathname ());
+                i++;
             } else {
                 archive.read_data_skip ();
             }
         }
 
-        if (src_dst.size () != 0) {
+        if (src_dst.size () != i) {
             throw new Util.ArchiveError.FILE_NOT_FOUND ("At least one specified file was not found in the archive.");
         }
         
