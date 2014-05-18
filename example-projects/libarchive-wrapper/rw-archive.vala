@@ -1,6 +1,6 @@
 // This file is part of GNOME Boxes. License: LGPLv2+
 
-class Util.RWArchive : GLib.Object {
+class Util.Archivist : GLib.Object {
     // PUBLIC MEMBERS
     public string filename { get; protected set; }
 
@@ -9,13 +9,13 @@ class Util.RWArchive : GLib.Object {
     private GLib.List<Archive.Filter> filters;
     private ArchiveAccess access;
     // Archives
-    private ReadArchive? read_archive = null;
-    private WriteArchive? write_archive = null;
+    private ArchiveReader? archive_reader = null;
+    private ArchiveWriter? archive_writer = null;
 
     // CONSTRUCTION|DESTRUCTION
     // if open only with write access, format have to be specified. If not they will be ignored.
     // filters will assumed NONE if not specified otherwise or information available from existent archive
-    public RWArchive.from_file (string filename,
+    public Archivist.from_file (string filename,
                       ArchiveAccess access,
                       Archive.Format? format = null,
                       GLib.List<Archive.Filter>? filters = null)
@@ -31,17 +31,17 @@ class Util.RWArchive : GLib.Object {
             this.filters = new GLib.List<Archive.Filter> ();
 
         if ( this.readable () ) {
-            this.read_archive = new ReadArchive.from_file (filename);
+            this.archive_reader = new ArchiveReader.from_file (filename);
             if ( this.writable () ) {
-                this.write_archive = this.read_archive.create_writable (this.filename + "~");
+                this.archive_writer = this.archive_reader.create_writable (this.filename + "~");
             }
         } else {
             // due to the preconditions: writable () && (format != null) && (filters != null)
-            this.write_archive = new WriteArchive.to_file (filename, format, filters);
+            this.archive_writer = new ArchiveWriter.to_file (filename, format, filters);
         }
     }
 
-    ~RWArchive () {
+    ~Archivist () {
         if ( this.readable () && this.writable () )
             this.flush ();
     }
@@ -50,24 +50,24 @@ class Util.RWArchive : GLib.Object {
     public void extract_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError
         requires ( this.readable () ) {
-        this.read_archive.extract_files (src_dst);
+        this.archive_reader.extract_files (src_dst);
     }
 
     public GLib.List<string> get_file_list ()
         requires ( this.readable () ) {
-        return this.read_archive.get_file_list ();
+        return this.archive_reader.get_file_list ();
     }
 
     public void insert_files (HashTable<string, string> src_dst)
         throws Util.ArchiveError
         requires ( this.writable () ) {
-        this.write_archive.insert_files (src_dst);
+        this.archive_writer.insert_files (src_dst);
     }
 
     public void insert_file (string src, string dst)
         throws Util.ArchiveError
         requires ( this.writable () ) {
-        this.write_archive.insert_file (src, dst);
+        this.archive_writer.insert_file (src, dst);
     }
 
     // PUBLIC FUNCTIONS

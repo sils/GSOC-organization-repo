@@ -1,6 +1,6 @@
 // This file is part of GNOME Boxes. License: LGPLv2+
 
-class Util.ReadArchive : GLib.Object {
+class Util.ArchiveReader : GLib.Object {
     // This is the example block size from the libarchive website
     private static const int BLOCK_SIZE = 10240;
     private Archive.Read archive;
@@ -10,25 +10,25 @@ class Util.ReadArchive : GLib.Object {
 
 
     // TODO supported filters and formats
-    public ReadArchive.from_file (string filename,
-                                  Archive.Format? format = null,
-                                  GLib.List<Archive.Filter>? filters = null)
-        throws Util.ArchiveError {
+    public ArchiveReader.from_file (string filename,
+                                    Archive.Format? format = null,
+                                    GLib.List<Archive.Filter>? filters = null)
+                                    throws Util.ArchiveError {
         this.filename = filename;
         this.format = format;
-        if ( filters != null )
+        if (filters != null)
             this.filters = filters.copy ();
         this.open_archive ();
     }
 
     ~ReadArchive () {
-        this.archive.close ();
+        archive.close ();
     }
 
     public GLib.List<string> get_file_list () {
         var result = new GLib.List<string> ();
         unowned Archive.Entry iterator;
-        while ( this.archive.next_header (out iterator) == Archive.Result.OK ) {
+        while (archive.next_header (out iterator) == Archive.Result.OK) {
             result.append (iterator.pathname ());
         }
         return result;
@@ -36,98 +36,98 @@ class Util.ReadArchive : GLib.Object {
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
     public void extract_files (HashTable<string, string> src_dst)
-        throws Util.ArchiveError {
-        if ( src_dst.size () == 0 )
+                               throws Util.ArchiveError {
+        if (src_dst.size () == 0)
             return;
 
         unowned Archive.Entry iterator;
-        while ( this.archive.next_header (out iterator) == Archive.Result.OK ) {
+        while (archive.next_header (out iterator) == Archive.Result.OK) {
             var dst = src_dst.get (iterator.pathname ());
-            if ( dst != null ) {
+            if (dst != null) {
                 // w+, rewrite whole file
                 var fd = FileStream.open (dst, "w+");
-                if ( this.archive.read_data_into_fd (fd.fileno ()) != Archive.Result.OK )
+                if (archive.read_data_into_fd (fd.fileno ()) != Archive.Result.OK)
                     throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Unable to extract file '%s'. Message: '%s'.",
-                                                                      dst, this.archive.error_string ());
-                debug ("Extracted file '%s' from archive '%s'.", dst, this.filename);
+                                                                      dst, archive.error_string ());
+                debug ("Extracted file '%s' from archive '%s'.", dst, filename);
 
                 src_dst.remove (iterator.pathname ());
             } else {
-                this.archive.read_data_skip ();
+                archive.read_data_skip ();
             }
         }
 
-        if ( src_dst.size () != 0 ) {
+        if (src_dst.size () != 0) {
             throw new Util.ArchiveError.FILE_NOT_FOUND ("At least one specified file was not found in the archive.");
         }
         
-        this.reset_iterators ();
+        reset_iterators ();
     }
 
     // creates a new archive in that you can write but that has the same format, filter and contents as this
-    public WriteArchive create_writable (string filename) throws Util.ArchiveError {
+    public ArchiveWriter create_writable (string filename) throws Util.ArchiveError {
         unowned Archive.Entry iterator;
-        if ( archive.next_header (out iterator) != Archive.Result.OK ) {
+        if (archive.next_header (out iterator) != Archive.Result.OK) {
             // its empty or something went wrong - throw exception
             var msg = "Error creating write archive for archive '%s'. Empty?";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
         }
-        var result = new WriteArchive.to_file (this.filename + "~", this.archive.format (), get_filters ());
+        var result = new ArchiveWriter.to_file (filename + "~", archive.format (), get_filters ());
 
         do {
             var len = iterator.size ();
-            if ( len > 0 ) {
+            if (len > 0) {
             void* buf = GLib.malloc ((size_t) len);
                 try {
                     result.insert_entry (iterator);
-                    result.insert_data (buf, this.archive.read_data (buf, (size_t) len));
+                    result.insert_data (buf, archive.read_data (buf, (size_t) len));
                 } finally {
                     free (buf);
                 }
             }
-        } while ( archive.next_header (out iterator) == Archive.Result.OK );
+        } while (archive.next_header (out iterator) == Archive.Result.OK);
 
-        this.reset_iterators ();
+        reset_iterators ();
         return result;
     }
 
     private void reset_iterators () throws Util.ArchiveError {
         // reopen archive to reset header iterator - FIXME better possibility?
-        if ( this.archive.close () != Archive.Result.OK ) {
+        if (archive.close () != Archive.Result.OK) {
             var msg = "Unable to reset iterators for archive '%s'. Error on trying to close, message: '%s'.";
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, this.filename, this.archive.error_string ());
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename, archive.error_string ());
         }
-        this.open_archive ();
+        open_archive ();
     }
 
     private void open_archive () throws Util.ArchiveError {
-        this.archive = new Archive.Read ();
-        if ( this.format == null )
-            this.archive.support_format_all ();
+        archive = new Archive.Read ();
+        if (format == null)
+            archive.support_format_all ();
         else
-            this.archive.set_format (this.format);
-        if ( this.filters == null )
-            this.archive.support_filter_all ();
+            archive.set_format (format);
+        if (filters == null)
+            archive.support_filter_all ();
         else
-            this.set_filter_stack ();
+            set_filter_stack ();
 
-        if (this.archive.open_filename (filename, BLOCK_SIZE) != Archive.Result.OK)
+        if (archive.open_filename (filename, BLOCK_SIZE) != Archive.Result.OK)
             throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive. Error: '%s'.",
-                                                              this.archive.error_string ());
+                                                              archive.error_string ());
     }
 
     private void set_filter_stack () throws Util.ArchiveError {
-        foreach ( var filter in this.filters ) {
-            if ( this.archive.append_filter (filter) != Archive.Result.OK )
+        foreach (var filter in filters) {
+            if (archive.append_filter (filter) != Archive.Result.OK)
                 throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed appending filter. Message: '%s'.",
-                                                                   this.archive.error_string ());
+                                                                   archive.error_string ());
         }
     }
 
     private GLib.List<Archive.Filter> get_filters () {
         var filters = new GLib.List<Archive.Filter> ();
-        for (var i = this.archive.filter_count () - 1; i > 0; i--)
-            filters.append (this.archive.filter_code (i - 1));
+        for (var i = archive.filter_count () - 1; i > 0; i--)
+            filters.append (archive.filter_code (i - 1));
         return filters;
     }
 }

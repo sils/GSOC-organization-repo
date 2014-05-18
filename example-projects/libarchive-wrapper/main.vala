@@ -1,19 +1,19 @@
 int main () {
     try {
-        var tst = new Util.RWArchive.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
+        var tst = new Util.Archivist.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
         var tbl = new GLib.HashTable<string, string> (str_hash, str_equal);
         tbl.insert ("casper/initrd.lz", "testfiles/initrd");
         tst.extract_files (tbl);
         tst = null;
 
         Timer timer = new Timer ();
-        tst = new Util.RWArchive.from_file ("testfiles/initrd", Util.ArchiveAccess.READWRITE);
+        tst = new Util.Archivist.from_file ("testfiles/initrd.gz", Util.ArchiveAccess.READWRITE);
         tst.insert_file ("testfiles/preseed.cfg", "preseed.cfg");
         tst = null;
         timer.stop ();
         stdout.printf ("Time: %f s\n", timer.elapsed (null));
 
-        tst = new Util.RWArchive.from_file ("testfiles/initrd", Util.ArchiveAccess.READ);
+        tst = new Util.Archivist.from_file ("testfiles/initrd.gz", Util.ArchiveAccess.READ);
         foreach (var file in tst.get_file_list ()) {
             if (file == "preseed.cfg") {
                 stdout.printf ("Preseed.cfg is in the new archive.\n");
