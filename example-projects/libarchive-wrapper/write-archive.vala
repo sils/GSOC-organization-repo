@@ -9,6 +9,47 @@ public class Util.ArchiveWriter : GLib.Object {
                                  GLib.List<Archive.Filter>? filters = null)
                                  throws Util.ArchiveError {
         archive = new Archive.Write ();
+        prepare_archive (format, filters);
+        archive.open_filename (filename);
+    }
+
+    public ArchiveWriter.from_raw_read_archive (Archive.Read read_archive,
+                                                string filename,
+                                                GLib.List<string>? omit_files = null)
+                                                throws Util.ArchiveError {
+        unowned Archive.Entry iterator;
+        archive = new Archive.Write ();
+        if (read_archive.next_header (out iterator) != Archive.Result.OK) {
+            // its empty or something went wrong - throw exception
+            var msg = "Error creating write archive for archive '%s'. Empty?";
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
+        }
+
+        prepare_archive (read_archive.format (), get_filters (read_archive));
+        archive.open_filename (filename);
+
+        do {
+            bool omit = false;
+            foreach (var file in omit_files) {
+                if (file == iterator.pathname ()) {
+                    omit = true;
+                    break;
+                }
+            }
+
+            if (!omit) {
+                var len = iterator.size ();
+                if (len > 0) {
+                    var buf = new uint8[len];
+                    insert_entry (iterator);
+                    insert_data (buf, read_archive.read_data (buf, (size_t) len));
+                }
+            }
+        } while (read_archive.next_header (out iterator) == Archive.Result.OK);
+    }
+
+    private void prepare_archive (Archive.Format format, GLib.List<Archive.Filter>? filters = null)
+                                  throws Util.ArchiveError {
         if (archive.set_format (format) != Archive.Result.OK) {
             var msg = "Failed setting format (%d) for archive. Message: '%s'.";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, format, archive.error_string ());
@@ -16,7 +57,13 @@ public class Util.ArchiveWriter : GLib.Object {
 
         if (filters != null)
             add_filters (filters);
-        archive.open_filename (filename);
+    }
+
+    private GLib.List<Archive.Filter> get_filters (Archive.Read read_archive) {
+        var filters = new GLib.List<Archive.Filter> ();
+        for (var i = read_archive.filter_count () - 1; i > 0; i--)
+            filters.append (read_archive.filter_code (i - 1));
+        return filters;
     }
 
     ~WriteArchive () {
@@ -55,14 +102,14 @@ public class Util.ArchiveWriter : GLib.Object {
         }
     }
 
-    public void insert_entry (Archive.Entry entry) throws Util.ArchiveError {
+    private void insert_entry (Archive.Entry entry) throws Util.ArchiveError {
         // write header
         if (archive.write_header (entry) != Archive.Result.OK)
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing header to archive. Message: '%s'.",
                                                               archive.error_string ());
     }
 
-    public void insert_data (void* data, int64 len) throws Util.ArchiveError {
+    private void insert_data (void* data, int64 len) throws Util.ArchiveError {
         // write data
         if (archive.write_data (data, (size_t) len) != len)
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing data to archive. Message: '%s'.",

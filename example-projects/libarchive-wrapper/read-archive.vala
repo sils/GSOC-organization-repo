@@ -73,25 +73,7 @@ class Util.ArchiveReader : GLib.Object {
 
     // creates a new archive in that you can write but that has the same format, filter and contents as this
     public ArchiveWriter create_writable (string filename) throws Util.ArchiveError {
-        unowned Archive.Entry iterator;
-        if (archive.next_header (out iterator) != Archive.Result.OK) {
-            // its empty or something went wrong - throw exception
-            var msg = "Error creating write archive for archive '%s'. Empty?";
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
-        }
-        var result = new ArchiveWriter.to_file (filename + "~", archive.format (), get_filters ());
-
-        do {
-            var len = iterator.size ();
-            if (len > 0) {
-            var buf = new uint8[len];
-            result.insert_entry (iterator);
-            result.insert_data (buf, archive.read_data (buf, (size_t) len));
-            }
-        } while (archive.next_header (out iterator) == Archive.Result.OK);
-
-        reset_iterators ();
-        return result;
+        return new ArchiveWriter.from_raw_read_archive (archive, filename);
     }
 
     private void reset_iterators () throws Util.ArchiveError {
@@ -125,13 +107,6 @@ class Util.ArchiveReader : GLib.Object {
                 throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed appending filter. Message: '%s'.",
                                                                    archive.error_string ());
         }
-    }
-
-    private GLib.List<Archive.Filter> get_filters () {
-        var filters = new GLib.List<Archive.Filter> ();
-        for (var i = archive.filter_count () - 1; i > 0; i--)
-            filters.append (archive.filter_code (i - 1));
-        return filters;
     }
 }
 
