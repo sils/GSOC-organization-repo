@@ -39,11 +39,10 @@ public class Util.ArchiveWriter : GLib.Object {
 
             if (omit == false) {
                 var len = iterator.size ();
-                if (len > 0) {
-                    var buf = new uint8[len];
-                    insert_entry (iterator);
+                var buf = new uint8[len];
+                insert_entry (iterator);
+                if (len > 0)
                     insert_data (buf, read_archive.read_data (buf, (size_t) len));
-                }
             } else {
                 debug ("Omitting file '%s' on archive recreation.", iterator.pathname ());
             }
