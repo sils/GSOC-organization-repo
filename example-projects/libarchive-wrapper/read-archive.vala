@@ -73,7 +73,7 @@ class Util.ArchiveReader : GLib.Object {
 
     // creates a new archive in that you can write but that has the same format, filter and contents as this
     public ArchiveWriter create_writable (string filename) throws Util.ArchiveError {
-        return new ArchiveWriter.from_raw_read_archive (archive, filename);
+        return new ArchiveWriter.from_raw_read_archive (archive, filename, {"preseed.cfg"});
     }
 
     private void reset_iterators () throws Util.ArchiveError {

@@ -15,7 +15,7 @@ public class Util.ArchiveWriter : GLib.Object {
 
     public ArchiveWriter.from_raw_read_archive (Archive.Read read_archive,
                                                 string filename,
-                                                GLib.List<string>? omit_files = null)
+                                                string[]? omit_files = null)
                                                 throws Util.ArchiveError {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();
@@ -37,13 +37,15 @@ public class Util.ArchiveWriter : GLib.Object {
                 }
             }
 
-            if (!omit) {
+            if (omit == false) {
                 var len = iterator.size ();
                 if (len > 0) {
                     var buf = new uint8[len];
                     insert_entry (iterator);
                     insert_data (buf, read_archive.read_data (buf, (size_t) len));
                 }
+            } else {
+                debug ("Omitting file '%s' on archive recreation.", iterator.pathname ());
             }
         } while (read_archive.next_header (out iterator) == Archive.Result.OK);
     }
@@ -95,7 +97,9 @@ public class Util.ArchiveWriter : GLib.Object {
     }
 
     public void add_filters (GLib.List<Archive.Filter> filters) throws Util.ArchiveError {
+        stdout.printf ("Adding filters...\n");
         foreach (var filter in filters) {
+            stdout.printf ("Adding filter %d.\n", filter);
             if (archive.add_filter (filter) != Archive.Result.OK)
                 throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting filter. Message: '%s'.",
                                                                    archive.error_string ());

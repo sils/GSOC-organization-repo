@@ -1,17 +1,13 @@
 int main () {
     try {
-        var tst = new Util.Archivist.from_file ("testfiles/testiso.iso", Util.ArchiveAccess.READ);
-        tst.extract_file ("casper/initrd.lz", "testfiles/initrd");
-        tst = null;
-
         Timer timer = new Timer ();
-        tst = new Util.Archivist.from_file ("testfiles/initrd.gz", Util.ArchiveAccess.READWRITE);
+        var tst = new Util.Archivist.from_file ("testfiles/ubuntu_initrd", Util.ArchiveAccess.READWRITE);
         tst.insert_file ("testfiles/preseed.cfg", "preseed.cfg");
         tst = null;
         timer.stop ();
         stdout.printf ("Time: %f s\n", timer.elapsed (null));
 
-        tst = new Util.Archivist.from_file ("testfiles/initrd.gz", Util.ArchiveAccess.READ);
+        tst = new Util.Archivist.from_file ("testfiles/ubuntu_initrd~", Util.ArchiveAccess.READ);
         foreach (var file in tst.get_file_list ()) {
             if (file == "preseed.cfg") {
                 stdout.printf ("Preseed.cfg is in the new archive.\n");

@@ -42,8 +42,8 @@ class Util.Archivist : GLib.Object {
     }
 
     ~Archivist () {
-        if (readable () && writable ())
-            flush ();
+        /*if (readable () && writable ())
+            flush ();*/
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
