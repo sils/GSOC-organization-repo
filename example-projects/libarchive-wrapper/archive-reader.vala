@@ -3,7 +3,7 @@
 class Boxes.ArchiveReader : GLib.Object {
     // This is the block size used by example code on the libarchive website
     private static const int BLOCK_SIZE = 10240;
-    private Archive.Read archive;
+    public Archive.Read archive;
     private string filename;
     private Archive.Format? format = null;
     private GLib.List<Archive.Filter>? filters = null;
@@ -23,7 +23,7 @@ class Boxes.ArchiveReader : GLib.Object {
 
     public GLib.List<string> get_file_list () throws Util.ArchiveError {
         var result = new GLib.List<string> ();
-        Archive.Entry iterator;
+        unowned Archive.Entry iterator;
         while (get_next_header (out iterator)) {
             result.append (iterator.pathname ());}
 
@@ -42,7 +42,7 @@ class Boxes.ArchiveReader : GLib.Object {
         if (src.length == 0)
             return;
 
-        Archive.Entry iterator;
+        unowned Archive.Entry iterator;
         uint i = 0;
         while (get_next_header (out iterator) && (i < src.length)) {
             string dst = null;
@@ -103,8 +103,12 @@ class Boxes.ArchiveReader : GLib.Object {
             return;
 
         case Archive.Result.RETRY:
-            if (retry > 0)
+            if (retry > 0) {
                 open_filename (retry - 1);
+
+                return;
+            }
+            break;
 
         case Archive.Result.WARN:
             warning ("%s", archive.error_string ());
@@ -118,7 +122,7 @@ class Boxes.ArchiveReader : GLib.Object {
                                                           archive.error_string ());
     }
 
-    private bool get_next_header (out Archive.Entry iterator, uint retry = 1) throws Util.ArchiveError {
+    private bool get_next_header (out unowned Archive.Entry iterator, uint retry = 1) throws Util.ArchiveError {
         switch (archive.next_header (out iterator)) {
         case Archive.Result.OK:
             return true;

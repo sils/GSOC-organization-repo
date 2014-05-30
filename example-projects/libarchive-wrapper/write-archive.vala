@@ -4,18 +4,18 @@
 public class Boxes.ArchiveWriter : GLib.Object {
     private Archive.Write archive;
 
-    public ArchiveWriter.to_file (string filename,
-                                 Archive.Format format,
-                                 GLib.List<Archive.Filter>? filters = null)
-                                 throws Util.ArchiveError {
+    public ArchiveWriter (string                     filename,
+                          Archive.Format             format,
+                          GLib.List<Archive.Filter>? filters = null)
+                          throws Util.ArchiveError {
         archive = new Archive.Write ();
         prepare_archive (format, filters);
         archive.open_filename (filename);
     }
 
     public ArchiveWriter.from_raw_read_archive (Archive.Read read_archive,
-                                                string filename,
-                                                string[]? omit_files = null)
+                                                string       filename,
+                                                string[]?    omit_files = null)
                                                 throws Util.ArchiveError {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();

@@ -1,15 +1,17 @@
 int main () {
     try {
         Timer timer = new Timer ();
-        var tst = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd");
-        tst.get_file_list ();
-        tst.insert_file ("testfiles/preseed.cfg", "preseed.cfg");
-        tst = null;
+        var read = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd");
+
+        var write = new Boxes.ArchiveWriter.from_raw_read_archive (read.archive, "testfiles/ubuntu_initrd~");
+        write.insert_file ("testfiles/preseed.cfg", "preseed.cfg");
+        write = null;
+
         timer.stop ();
         stdout.printf ("Time: %f s\n", timer.elapsed (null));
 
-        tst = new Boxes.Archivist.from_file ("testfiles/ubuntu_initrd~", Boxes.ArchiveAccess.READ);
-        foreach (var file in tst.get_file_list ()) {
+        read = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd~");
+        foreach (var file in read.get_file_list ()) {
             if (file == "preseed.cfg") {
                 stdout.printf ("Preseed.cfg is in the new archive.\n");
                 break;
