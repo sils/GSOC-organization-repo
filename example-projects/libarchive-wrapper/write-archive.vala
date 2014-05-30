@@ -1,7 +1,7 @@
 // This file is part of GNOME Boxes. License: LGPLv2+
 
 // A non-threadsafe wrapper for libarchives write archive
-public class Util.ArchiveWriter : GLib.Object {
+public class Boxes.ArchiveWriter : GLib.Object {
     private Archive.Write archive;
 
     public ArchiveWriter.to_file (string filename,

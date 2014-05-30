@@ -10,7 +10,7 @@ public errordomain Util.ArchiveError {
     UNKNOWN
 }
 
-public enum Util.ArchiveAccess {
+public enum Boxes.ArchiveAccess {
     READ = 1,
     WRITE = 2,
     READWRITE = 3
