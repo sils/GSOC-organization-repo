@@ -3,13 +3,17 @@
 // A non-threadsafe wrapper for libarchives write archive
 public class Boxes.ArchiveWriter : GLib.Object {
     private Archive.Write archive;
+    GLib.List<Archive.Filter>? filters;
+    Archive.Format format;
 
     public ArchiveWriter (string                     filename,
                           Archive.Format             format,
                           GLib.List<Archive.Filter>? filters = null)
                           throws Util.ArchiveError {
         archive = new Archive.Write ();
-        prepare_archive (format, filters);
+        this.format  = format;
+        this.filters = filters.copy ();
+        prepare_archive ();
         archive.open_filename (filename);
     }
 
@@ -25,7 +29,9 @@ public class Boxes.ArchiveWriter : GLib.Object {
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
         }
 
-        prepare_archive (read_archive.format (), get_filters (read_archive));
+        format = read_archive.format ();
+        get_filters (read_archive);
+        prepare_archive ();
         archive.open_filename (filename);
 
         do {
@@ -49,7 +55,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         } while (read_archive.next_header (out iterator) == Archive.Result.OK);
     }
 
-    private void prepare_archive (Archive.Format format, GLib.List<Archive.Filter>? filters = null)
+    private void prepare_archive ()
                                   throws Util.ArchiveError {
         if (archive.set_format (format) != Archive.Result.OK) {
             var msg = "Failed setting format (%d) for archive. Message: '%s'.";
@@ -57,18 +63,13 @@ public class Boxes.ArchiveWriter : GLib.Object {
         }
 
         if (filters != null)
-            add_filters (filters);
+            add_filters ();
     }
 
-    private GLib.List<Archive.Filter> get_filters (Archive.Read read_archive) {
-        var filters = new GLib.List<Archive.Filter> ();
+    private void get_filters (Archive.Read read_archive) {
+        filters = new GLib.List<Archive.Filter> ();
         for (var i = read_archive.filter_count () - 1; i > 0; i--)
             filters.append (read_archive.filter_code (i - 1));
-        return filters;
-    }
-
-    ~WriteArchive () {
-        archive.close ();
     }
 
     public void insert_files (string[] src, string[] dst)
@@ -95,10 +96,8 @@ public class Boxes.ArchiveWriter : GLib.Object {
         }
     }
 
-    public void add_filters (GLib.List<Archive.Filter> filters) throws Util.ArchiveError {
-        stdout.printf ("Adding filters...\n");
+    public void add_filters () throws Util.ArchiveError {
         foreach (var filter in filters) {
-            stdout.printf ("Adding filter %d.\n", filter);
             if (archive.add_filter (filter) != Archive.Result.OK)
                 throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting filter. Message: '%s'.",
                                                                    archive.error_string ());
