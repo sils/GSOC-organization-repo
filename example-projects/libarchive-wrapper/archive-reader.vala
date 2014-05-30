@@ -21,6 +21,10 @@ class Util.ArchiveReader : GLib.Object {
         this.open_archive ();
     }
 
+    ~ReadArchive () {
+        archive.close ();
+    }
+
     public GLib.List<string> get_file_list () {
         var result = new GLib.List<string> ();
         unowned Archive.Entry iterator;
