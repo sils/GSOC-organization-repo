@@ -15,7 +15,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         this.filters = filters.copy ();
 
         prepare_archive ();
-        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename); });
+        ArchiveHelper.handle_errors (archive, () => { return archive.open_filename (filename); });
     }
 
     public ArchiveWriter.from_archive_reader (ArchiveReader archive_reader,
@@ -24,7 +24,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
                                               throws GLib.IOError {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();
-        if (!ArchiveErrorCatcher.get_next_header (archive_reader.archive, out iterator)) {
+        if (!ArchiveHelper.get_next_header (archive_reader.archive, out iterator)) {
             var msg = "Error creating write archive for archive '%s'. It is probably empty.";
             throw new GLib.IOError.FAILED (msg, filename);
         }
@@ -32,7 +32,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         format = archive_reader.archive.format ();
         get_filters (archive_reader.archive);
         prepare_archive ();
-        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename); });
+        ArchiveHelper.handle_errors (archive, () => { return archive.open_filename (filename); });
 
         archive_reader.reset ();
 
@@ -48,7 +48,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
                                      bool          omit_hardlinked_files = false)
                                      throws GLib.IOError {
         unowned Archive.Entry iterator;
-        while (ArchiveErrorCatcher.get_next_header (archive_reader.archive, out iterator)) {
+        while (ArchiveHelper.get_next_header (archive_reader.archive, out iterator)) {
             var omit = false;
             foreach (var file in omit_files) {
                 if (file == iterator.pathname ()) {
@@ -59,17 +59,14 @@ public class Boxes.ArchiveWriter : GLib.Object {
             }
 
             if (omit) {
-                if (omit_hardlinked_files || iterator.nlink () == 1 || iterator.hardlink () == null) {
-                    debug ("Omitting file '%s' on archive recreation.", iterator.pathname ());
-
+                if (omit_hardlinked_files || iterator.nlink () == 1 || iterator.hardlink () == null)
                     continue;
-                } else {
+                else
                     warning ("File '%s' cannot be omitted since a hardlink points to it.", iterator.pathname ());
-                }
             }
 
             var len = iterator.size ();
-            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.write_header (iterator); });
+            ArchiveHelper.handle_errors (archive, () => { return archive.write_header (iterator); });
             if (len > 0) {
                 var buf = new uint8[len];
                 insert_data (buf, archive_reader.archive.read_data (buf, (size_t) len));
@@ -80,7 +77,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
     }
 
     private void prepare_archive () throws GLib.IOError {
-        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.set_format (format); });
+        ArchiveHelper.handle_errors (archive, () => { return archive.set_format (format); });
 
         if (filters != null)
             add_filters ();
@@ -112,13 +109,13 @@ public class Boxes.ArchiveWriter : GLib.Object {
         // get file info, read data into memory
         var filestream = GLib.FileStream.open (src, "r");
         filestream.read ((uint8[]) buf, (size_t) len);
-        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.write_header(entry); });
+        ArchiveHelper.handle_errors (archive, () => { return archive.write_header(entry); });
         insert_data ((uint8[]) buf, len);
     }
 
     public void add_filters () throws GLib.IOError {
         foreach (var filter in filters)
-            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.add_filter (filter); });
+            ArchiveHelper.handle_errors (archive, () => { return archive.add_filter (filter); });
     }
 
     private void insert_data (void* data, int64 len) throws GLib.IOError {

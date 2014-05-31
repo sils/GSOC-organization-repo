@@ -23,7 +23,7 @@ public class Boxes.ArchiveReader : GLib.Object {
     public GLib.List<string> get_file_list () throws GLib.IOError {
         var result = new GLib.List<string> ();
         unowned Archive.Entry iterator;
-        while (ArchiveErrorCatcher.get_next_header (archive, out iterator))
+        while (ArchiveHelper.get_next_header (archive, out iterator))
             result.append (iterator.pathname ());
 
         return result;
@@ -52,7 +52,7 @@ public class Boxes.ArchiveReader : GLib.Object {
         uint i = 0;
         string[] hardlink_src = {};
         string[] hardlink_dst = {};
-        while (ArchiveErrorCatcher.get_next_header (archive, out iterator) && (i < src.length)) {
+        while (ArchiveHelper.get_next_header (archive, out iterator) && (i < src.length)) {
             string dst = null;
             for (uint j = 0; j < src.length; j++) {
                 if (src[j] == iterator.pathname ()) {
@@ -63,7 +63,7 @@ public class Boxes.ArchiveReader : GLib.Object {
             }
 
             if (dst == null) {
-                ArchiveErrorCatcher.handle_errors (archive, archive.read_data_skip);
+                ArchiveHelper.handle_errors (archive, archive.read_data_skip);
 
                 continue;
             }
@@ -81,7 +81,7 @@ public class Boxes.ArchiveReader : GLib.Object {
                 throw new GLib.IOError.EXISTS ("Destination file '%s' already exists.", dst);
 
             var fd = FileStream.open (dst, "w+");
-            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.read_data_into_fd (fd.fileno ()); });
+            ArchiveHelper.handle_errors (archive, () => { return archive.read_data_into_fd (fd.fileno ()); });
 
             debug ("Extracted file '%s' from archive '%s'.", dst, filename);
             i++;
@@ -103,7 +103,7 @@ public class Boxes.ArchiveReader : GLib.Object {
     }
 
     public void reset () throws GLib.IOError {
-        ArchiveErrorCatcher.handle_errors (archive, archive.close);
+        ArchiveHelper.handle_errors (archive, archive.close);
         open_archive ();
     }
 
@@ -111,21 +111,21 @@ public class Boxes.ArchiveReader : GLib.Object {
         archive = new Archive.Read ();
 
         if (format == null)
-            ArchiveErrorCatcher.handle_errors (archive, archive.support_format_all);
+            ArchiveHelper.handle_errors (archive, archive.support_format_all);
         else
-            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.set_format (format); });
+            ArchiveHelper.handle_errors (archive, () => { return archive.set_format (format); });
 
         if (filters == null)
-            ArchiveErrorCatcher.handle_errors (archive, archive.support_filter_all);
+            ArchiveHelper.handle_errors (archive, archive.support_filter_all);
         else
             set_filter_stack ();
 
-        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename, BLOCK_SIZE); });
+        ArchiveHelper.handle_errors (archive, () => { return archive.open_filename (filename, BLOCK_SIZE); });
     }
 
     private void set_filter_stack () throws GLib.IOError {
         foreach (var filter in filters)
-            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.append_filter (filter); });
+            ArchiveHelper.handle_errors (archive, () => { return archive.append_filter (filter); });
     }
 }
 

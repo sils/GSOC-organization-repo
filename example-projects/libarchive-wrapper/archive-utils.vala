@@ -2,9 +2,9 @@
 
 using Archive;
 
-public class Boxes.ArchiveErrorCatcher {
+public class Boxes.ArchiveHelper {
     // This class is not inteneded to be created
-    private ArchiveErrorCatcher () {}
+    private ArchiveHelper () {}
 
     public static bool get_next_header (Archive.Read              archive,
                                         out unowned Archive.Entry iterator,
