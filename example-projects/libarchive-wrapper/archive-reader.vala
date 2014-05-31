@@ -36,16 +36,13 @@ public class Boxes.ArchiveReader : GLib.Object {
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
-    // dont set the recursion_depth parameter from the outside
-    public void extract_files (string[] src, string[] dsts, uint recursion_depth = 0)
+    public void extract_files (string[] src,
+                               string[] dsts,
+                               uint     follow_hardlinks = 1)
                                throws Util.ArchiveError
                                requires (src.length == dsts.length) {
         if (src.length == 0)
             return;
-
-        // we shouldn't need to follow a hardlink twice
-        if (recursion_depth > 1)
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Maximum recursion depth exceeded. It is likely that a hardlink points to itself (at least indirectly).");
 
         unowned Archive.Entry iterator;
         uint i = 0;
@@ -88,7 +85,14 @@ public class Boxes.ArchiveReader : GLib.Object {
 
         reset ();
 
-        extract_files (hardlink_src, hardlink_dst, recursion_depth + 1);
+        if (hardlink_src.length > 0) {
+            if (follow_hardlinks > 0) {
+                extract_files (hardlink_src, hardlink_dst, follow_hardlinks - 1);
+            } else {
+                var msg = "Maximum recursion depth exceeded. It is likely that a hardlink points to itself.";
+                throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg);
+            }
+        }
     }
 
     public void reset () throws Util.ArchiveError {
