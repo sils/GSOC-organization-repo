@@ -49,7 +49,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
                                      throws Util.ArchiveError {
         unowned Archive.Entry iterator;
         while (ArchiveErrorCatcher.get_next_header (archive_reader.archive, out iterator)) {
-            bool omit = false;
+            var omit = false;
             foreach (var file in omit_files) {
                 if (file == iterator.pathname ()) {
                     omit = true;
@@ -94,7 +94,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
     public void insert_files (string[] src, string[] dst)
                               throws Util.ArchiveError
                               requires (src.length == dst.length) {
-        for (var i = 0; i < src.length; i++)
+        for (uint i = 0; i < src.length; i++)
             insert_file (src[i], dst[i]);
     }
 
