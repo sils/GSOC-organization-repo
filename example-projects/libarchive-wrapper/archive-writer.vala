@@ -92,15 +92,16 @@ public class Boxes.ArchiveWriter : GLib.Object {
             filters.append (read_archive.filter_code (i - 1));
     }
 
-    public void insert_files (string[] src, string[] dst)
-                              throws GLib.IOError
-                              requires (src.length == dst.length) {
+    public void insert_files (string[] src, string[] dst) throws GLib.IOError requires (src.length == dst.length) {
         for (uint i = 0; i < src.length; i++)
             insert_file (src[i], dst[i]);
     }
 
     // while dst is the destination relative to archive root
     public void insert_file (string src, string dst) throws GLib.IOError {
+        if (!FileUtils.test (src, FileTest.EXISTS))
+            throw new GLib.IOError.NOT_FOUND ("Source file '%s' cannot be injected. File not found.", src);
+
         var entry = get_entry_for_file (src, dst);
         if (entry.hardlink () != null && entry.size () == 0)
             throw new GLib.IOError.NOT_SUPPORTED ("Inserting hardlinks is currently not supported.");

@@ -30,13 +30,18 @@ public class Boxes.ArchiveReader : GLib.Object {
     }
 
     // convenience wrapper, don't use it for extracting more than one file for performance reasons!
-    public void extract_file (string src, string dst) throws GLib.IOError {
-        extract_files ({src}, {dst});
+    public void extract_file (string src,
+                              string dst,
+                              bool   override_if_necessary = false,
+                              uint   follow_hardlinks      = 1)
+                              throws GLib.IOError {
+        extract_files ({src}, {dst}, override_if_necessary, follow_hardlinks);
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
     public void extract_files (string[] src,
                                string[] dsts,
+                               bool     override_if_necessary = false,
                                uint     follow_hardlinks = 1)
                                throws GLib.IOError
                                requires (src.length == dsts.length) {
@@ -72,6 +77,9 @@ public class Boxes.ArchiveReader : GLib.Object {
                 continue;
             }
 
+            if (!override_if_necessary && FileUtils.test (dst, FileTest.EXISTS))
+                throw new GLib.IOError.EXISTS ("Destination file '%s' already exists.", dst);
+
             var fd = FileStream.open (dst, "w+");
             ArchiveErrorCatcher.handle_errors (archive, () => { return archive.read_data_into_fd (fd.fileno ()); });
 
@@ -86,7 +94,7 @@ public class Boxes.ArchiveReader : GLib.Object {
 
         if (hardlink_src.length > 0) {
             if (follow_hardlinks > 0) {
-                extract_files (hardlink_src, hardlink_dst, follow_hardlinks - 1);
+                extract_files (hardlink_src, hardlink_dst, override_if_necessary, follow_hardlinks - 1);
             } else {
                 var msg = "Maximum recursion depth exceeded. It is likely that a hardlink points to itself.";
                 throw new GLib.IOError.WOULD_RECURSE (msg);

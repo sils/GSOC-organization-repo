@@ -1,7 +1,7 @@
 int main () {
     try {
         var read = new Boxes.ArchiveReader ("testfiles/Fedora-20-x86_64-DVD.iso");
-        read.extract_file ("isolinux/initrd.img", "testfiles/fedorainitrd");
+        read.extract_file ("isolinux/initrd.img", "testfiles/fedorainitrd", true);
 
         Timer timer = new Timer ();
         read = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd");
