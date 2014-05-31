@@ -98,6 +98,7 @@ public class Boxes.ArchiveReader : GLib.Object {
 
     private void open_archive () throws Util.ArchiveError {
         archive = new Archive.Read ();
+
         if (format == null)
             ArchiveErrorCatcher.handle_errors (archive, archive.support_format_all);
         else

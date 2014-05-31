@@ -38,8 +38,8 @@ public class Boxes.ArchiveErrorCatcher {
         default:
             break;
         }
-        // TODO better error handling
-        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed to retrieve header.");
+        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed to retrieve header. Message was: '%s'.",
+                                                           archive.error_string ());
     }
 
     public delegate Archive.Result libarchive_function ();
@@ -66,8 +66,7 @@ public class Boxes.ArchiveErrorCatcher {
         default: // EOF error doesnt make sense, throw an error too
             break;
         }
-        // TODO better error handling
-        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Unable to execute function.");
+        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("%s", archive.error_string ());
     }
 }
 
