@@ -105,6 +105,9 @@ public class Boxes.ArchiveWriter : GLib.Object {
     // while dst is the destination relative to archive root
     public void insert_file (string src, string dst) throws Util.ArchiveError {
         var entry = get_entry_for_file (src, dst);
+        if (entry.hardlink () != null && entry.size () == 0)
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Inserting hardlinks is currently not supported.");
+
         var len = entry.size ();
         var buf = new uint8[len];
         try {

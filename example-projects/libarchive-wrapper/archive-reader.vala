@@ -77,10 +77,7 @@ public class Boxes.ArchiveReader : GLib.Object {
             }
 
             var fd = FileStream.open (dst, "w+");
-            // TODO error handling
-            if (archive.read_data_into_fd (fd.fileno ()) != Archive.Result.OK)
-                throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Unable to extract file '%s'. Message: '%s'.",
-                                                                  dst, archive.error_string ());
+            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.read_data_into_fd (fd.fileno ()); });
 
             debug ("Extracted file '%s' from archive '%s'.", dst, filename);
             i++;

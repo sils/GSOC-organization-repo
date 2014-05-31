@@ -26,7 +26,7 @@ public class Boxes.ArchiveErrorCatcher {
             return false;
 
         case Archive.Result.RETRY:
-            if (retry > 0)
+            if (retry < 1)
                 break;
 
             return get_next_header (archive, out iterator, retry - 1);
@@ -53,7 +53,7 @@ public class Boxes.ArchiveErrorCatcher {
             return;
 
         case Archive.Result.RETRY:
-            if (retry > 0)
+            if (retry < 1)
                 break;
 
             handle_errors (archive, function, retry - 1);
