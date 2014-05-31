@@ -2,14 +2,6 @@
 
 using Archive;
 
-public errordomain Util.ArchiveError {
-    FILE_NOT_FOUND,
-    FILE_OPERATION_ERROR,
-    UNKNOWN_ARCHIVE_TYPE,
-    GENERAL_ARCHIVE_ERROR,
-    UNKNOWN
-}
-
 public class Boxes.ArchiveErrorCatcher {
     // This class is not inteneded to be created
     private ArchiveErrorCatcher () {}
@@ -17,7 +9,7 @@ public class Boxes.ArchiveErrorCatcher {
     public static bool get_next_header (Archive.Read              archive,
                                         out unowned Archive.Entry iterator,
                                         uint                      retry = 1)
-                                        throws Util.ArchiveError {
+                                        throws GLib.IOError {
         switch (archive.next_header (out iterator)) {
         case Archive.Result.OK:
             return true;
@@ -38,7 +30,7 @@ public class Boxes.ArchiveErrorCatcher {
         default:
             break;
         }
-        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed to retrieve header. Message was: '%s'.",
+        throw new GLib.IOError.FAILED ("Failed to retrieve header. Message was: '%s'.",
                                                            archive.error_string ());
     }
 
@@ -47,7 +39,7 @@ public class Boxes.ArchiveErrorCatcher {
     public static void handle_errors (Archive.Archive     archive,
                                       libarchive_function function,
                                       uint                retry = 1)
-                                      throws Util.ArchiveError {
+                                      throws GLib.IOError {
         switch (function ()) {
         case Archive.Result.OK:
             return;
@@ -63,10 +55,11 @@ public class Boxes.ArchiveErrorCatcher {
             warning ("%s", archive.error_string ());
             return;
 
-        default: // EOF error doesnt make sense, throw an error too
+        default:
             break;
         }
-        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("%s", archive.error_string ());
+
+        throw new GLib.IOError.FAILED ("%s", archive.error_string ());
     }
 }
 

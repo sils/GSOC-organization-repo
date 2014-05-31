@@ -11,7 +11,7 @@ public class Boxes.ArchiveReader : GLib.Object {
     public ArchiveReader (string                     filename,
                           Archive.Format?            format  = null,
                           GLib.List<Archive.Filter>? filters = null)
-                          throws Util.ArchiveError {
+                          throws GLib.IOError {
         this.filename = filename;
         this.format = format;
         if (filters != null)
@@ -20,17 +20,17 @@ public class Boxes.ArchiveReader : GLib.Object {
         open_archive ();
     }
 
-    public GLib.List<string> get_file_list () throws Util.ArchiveError {
+    public GLib.List<string> get_file_list () throws GLib.IOError {
         var result = new GLib.List<string> ();
         unowned Archive.Entry iterator;
-        while (ArchiveErrorCatcher.get_next_header (archive, out iterator)) {
-            result.append (iterator.pathname ());}
+        while (ArchiveErrorCatcher.get_next_header (archive, out iterator))
+            result.append (iterator.pathname ());
 
         return result;
     }
 
     // convenience wrapper, don't use it for extracting more than one file for performance reasons!
-    public void extract_file (string src, string dst) throws Util.ArchiveError {
+    public void extract_file (string src, string dst) throws GLib.IOError {
         extract_files ({src}, {dst});
     }
 
@@ -38,7 +38,7 @@ public class Boxes.ArchiveReader : GLib.Object {
     public void extract_files (string[] src,
                                string[] dsts,
                                uint     follow_hardlinks = 1)
-                               throws Util.ArchiveError
+                               throws GLib.IOError
                                requires (src.length == dsts.length) {
         if (src.length == 0)
             return;
@@ -80,7 +80,7 @@ public class Boxes.ArchiveReader : GLib.Object {
         }
 
         if (src.length != i)
-            throw new Util.ArchiveError.FILE_NOT_FOUND ("At least one specified file was not found in the archive.");
+            throw new GLib.IOError.NOT_FOUND ("At least one specified file was not found in the archive.");
 
         reset ();
 
@@ -89,17 +89,17 @@ public class Boxes.ArchiveReader : GLib.Object {
                 extract_files (hardlink_src, hardlink_dst, follow_hardlinks - 1);
             } else {
                 var msg = "Maximum recursion depth exceeded. It is likely that a hardlink points to itself.";
-                throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg);
+                throw new GLib.IOError.WOULD_RECURSE (msg);
             }
         }
     }
 
-    public void reset () throws Util.ArchiveError {
+    public void reset () throws GLib.IOError {
         ArchiveErrorCatcher.handle_errors (archive, archive.close);
         open_archive ();
     }
 
-    private void open_archive () throws Util.ArchiveError {
+    private void open_archive () throws GLib.IOError {
         archive = new Archive.Read ();
 
         if (format == null)
@@ -115,7 +115,7 @@ public class Boxes.ArchiveReader : GLib.Object {
         ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename, BLOCK_SIZE); });
     }
 
-    private void set_filter_stack () throws Util.ArchiveError {
+    private void set_filter_stack () throws GLib.IOError {
         foreach (var filter in filters)
             ArchiveErrorCatcher.handle_errors (archive, () => { return archive.append_filter (filter); });
     }

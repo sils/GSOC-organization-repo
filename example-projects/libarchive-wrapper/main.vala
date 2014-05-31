@@ -20,7 +20,7 @@ int main () {
                 break;
             }
         }
-    } catch (Util.ArchiveError e) {
+    } catch (GLib.IOError e) {
         stdout.printf ("Exception with message: '%s'.\n", e.message);
         return 1;
     }
