@@ -13,8 +13,9 @@ public class Boxes.ArchiveWriter : GLib.Object {
         archive = new Archive.Write ();
         this.format  = format;
         this.filters = filters.copy ();
+
         prepare_archive ();
-        archive.open_filename (filename);
+        ArchiveUtils.arg_handle_errors (archive, archive.open_filename, filename);
     }
 
     public ArchiveWriter.from_raw_read_archive (Archive.Read read_archive,
@@ -23,7 +24,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
                                                 throws Util.ArchiveError {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();
-        if (read_archive.next_header (out iterator) != Archive.Result.OK) {
+        if (!ArchiveUtils.get_next_header (read_archive, out iterator)) {
             // its empty or something went wrong - throw exception
             var msg = "Error creating write archive for archive '%s'. Empty?";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
@@ -32,7 +33,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         format = read_archive.format ();
         get_filters (read_archive);
         prepare_archive ();
-        archive.open_filename (filename);
+        ArchiveUtils.arg_handle_errors (archive, archive.open_filename, filename);
 
         do {
             bool omit = false;
@@ -43,16 +44,18 @@ public class Boxes.ArchiveWriter : GLib.Object {
                 }
             }
 
-            if (omit == false) {
-                var len = iterator.size ();
-                var buf = new uint8[len];
-                insert_entry (iterator);
-                if (len > 0)
-                    insert_data (buf, read_archive.read_data (buf, (size_t) len));
-            } else {
+            if (omit) {
                 debug ("Omitting file '%s' on archive recreation.", iterator.pathname ());
+
+                continue;
             }
-        } while (read_archive.next_header (out iterator) == Archive.Result.OK);
+
+            var len = iterator.size ();
+            var buf = new uint8[len];
+            archive.write_header (iterator);
+            if (len > 0)
+                insert_data (buf, read_archive.read_data (buf, (size_t) len));
+        } while (ArchiveUtils.get_next_header (read_archive, out iterator));
     }
 
     private void prepare_archive ()
@@ -88,7 +91,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
             // get file info, read data into memory
             var filestream = GLib.FileStream.open (src, "r");
             filestream.read ((uint8[]) buf, (size_t) len);
-            insert_entry (entry);
+            archive.write_header(entry);
             insert_data ((uint8[]) buf, len);
         } catch (GLib.Error e) {
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'. Message: '%s'.",
@@ -97,22 +100,11 @@ public class Boxes.ArchiveWriter : GLib.Object {
     }
 
     public void add_filters () throws Util.ArchiveError {
-        foreach (var filter in filters) {
-            if (archive.add_filter (filter) != Archive.Result.OK)
-                throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Failed setting filter. Message: '%s'.",
-                                                                   archive.error_string ());
-        }
-    }
-
-    private void insert_entry (Archive.Entry entry) throws Util.ArchiveError {
-        // write header
-        if (archive.write_header (entry) != Archive.Result.OK)
-            throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing header to archive. Message: '%s'.",
-                                                              archive.error_string ());
+        foreach (var filter in filters)
+            ArchiveUtils.arg_handle_errors (archive, archive.add_filter, filter);
     }
 
     private void insert_data (void* data, int64 len) throws Util.ArchiveError {
-        // write data
         if (archive.write_data (data, (size_t) len) != len)
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Failed writing data to archive. Message: '%s'.",
                                                               archive.error_string ());
@@ -123,6 +115,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         var result = new Archive.Entry ();
 
         Posix.stat (filename, out st);
+        // these functions doesnt return errors
         result.copy_stat (st);
         result.set_pathname (dest_name);
 
