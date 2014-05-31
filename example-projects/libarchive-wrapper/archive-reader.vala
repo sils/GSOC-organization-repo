@@ -1,6 +1,6 @@
 // This file is part of GNOME Boxes. License: LGPLv2+
 
-class Boxes.ArchiveReader : GLib.Object {
+public class Boxes.ArchiveReader : GLib.Object {
     // This is the block size used by example code on the libarchive website
     private static const int BLOCK_SIZE = 10240;
     public Archive.Read archive;
@@ -44,6 +44,8 @@ class Boxes.ArchiveReader : GLib.Object {
 
         unowned Archive.Entry iterator;
         uint i = 0;
+        string[] hardlink_src = {};
+        string[] hardlink_dst = {};
         while (ArchiveUtils.get_next_header (archive, out iterator) && (i < src.length)) {
             string dst = null;
             for (uint j = 0; j < src.length; j++) {
@@ -60,8 +62,10 @@ class Boxes.ArchiveReader : GLib.Object {
                 continue;
             }
 
-            if (iterator.hardlink () != null) {
-                extract_file (iterator.hardlink (), dst);
+            if (iterator.hardlink () != null && iterator.size () == 0) {
+                hardlink_src += iterator.pathname ();
+                hardlink_dst += dst;
+                i++;
 
                 continue;
             }
@@ -79,7 +83,14 @@ class Boxes.ArchiveReader : GLib.Object {
         if (src.length != i)
             throw new Util.ArchiveError.FILE_NOT_FOUND ("At least one specified file was not found in the archive.");
 
-        reset_iterators ();
+        reset ();
+
+        extract_files (hardlink_src, hardlink_dst);
+    }
+
+    public void reset () throws Util.ArchiveError {
+        ArchiveUtils.handle_errors (archive, archive.close);
+        open_archive ();
     }
 
     private void open_archive () throws Util.ArchiveError {
@@ -120,11 +131,6 @@ class Boxes.ArchiveReader : GLib.Object {
         // TODO better error handling
         throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive. Error: '%s'.",
                                                           archive.error_string ());
-    }
-
-    private void reset_iterators () throws Util.ArchiveError {
-        ArchiveUtils.handle_errors (archive, archive.close);
-        open_archive ();
     }
 
     private void set_filter_stack () throws Util.ArchiveError {

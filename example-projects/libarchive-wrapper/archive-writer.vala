@@ -2,7 +2,7 @@
 
 // A non-threadsafe wrapper for libarchives write archive
 public class Boxes.ArchiveWriter : GLib.Object {
-    private Archive.Write archive;
+    public Archive.Write archive;
     GLib.List<Archive.Filter>? filters;
     Archive.Format format;
 
@@ -18,28 +18,40 @@ public class Boxes.ArchiveWriter : GLib.Object {
         ArchiveUtils.arg_handle_errors (archive, archive.open_filename, filename);
     }
 
-    public ArchiveWriter.from_raw_read_archive (Archive.Read read_archive,
-                                                string       filename,
-                                                string[]?    omit_files = null)
-                                                throws Util.ArchiveError {
+    public ArchiveWriter.from_archive_reader (ArchiveReader archive_reader,
+                                              string        filename,
+                                              bool          import_contents = true)
+                                              throws Util.ArchiveError {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();
-        if (!ArchiveUtils.get_next_header (read_archive, out iterator)) {
+        if (!ArchiveUtils.get_next_header (archive_reader.archive, out iterator)) {
             // its empty or something went wrong - throw exception
             var msg = "Error creating write archive for archive '%s'. Empty?";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
         }
 
-        format = read_archive.format ();
-        get_filters (read_archive);
+        format = archive_reader.archive.format ();
+        get_filters (archive_reader.archive);
         prepare_archive ();
         ArchiveUtils.arg_handle_errors (archive, archive.open_filename, filename);
 
-        do {
+        archive_reader.reset ();
+
+        if (import_contents)
+            import_read_archive (archive_reader);
+    }
+
+    // FIXME if a hardlink points to an omitted file the body will not be stored, maybe iterator.nlink () helps
+    public void import_read_archive (ArchiveReader archive_reader,
+                                     string[]?     omit_files = null)
+                                     throws Util.ArchiveError {
+        unowned Archive.Entry iterator;
+        while (ArchiveUtils.get_next_header (archive_reader.archive, out iterator)) {
             bool omit = false;
             foreach (var file in omit_files) {
                 if (file == iterator.pathname ()) {
                     omit = true;
+
                     break;
                 }
             }
@@ -54,12 +66,13 @@ public class Boxes.ArchiveWriter : GLib.Object {
             var buf = new uint8[len];
             archive.write_header (iterator);
             if (len > 0)
-                insert_data (buf, read_archive.read_data (buf, (size_t) len));
-        } while (ArchiveUtils.get_next_header (read_archive, out iterator));
+                insert_data (buf, archive_reader.archive.read_data (buf, (size_t) len));
+        }
+
+        archive_reader.reset ();
     }
 
-    private void prepare_archive ()
-                                  throws Util.ArchiveError {
+    private void prepare_archive () throws Util.ArchiveError {
         if (archive.set_format (format) != Archive.Result.OK) {
             var msg = "Failed setting format (%d) for archive. Message: '%s'.";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, format, archive.error_string ());

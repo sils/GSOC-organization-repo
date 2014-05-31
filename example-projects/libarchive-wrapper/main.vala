@@ -3,7 +3,7 @@ int main () {
         Timer timer = new Timer ();
         var read = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd");
 
-        var write = new Boxes.ArchiveWriter.from_raw_read_archive (read.archive, "testfiles/ubuntu_initrd~");
+        var write = new Boxes.ArchiveWriter.from_archive_reader (read, "testfiles/ubuntu_initrd~");
         write.insert_file ("testfiles/preseed.cfg", "preseed.cfg");
         write = null;
 
