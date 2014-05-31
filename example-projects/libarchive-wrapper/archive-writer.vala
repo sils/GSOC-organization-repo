@@ -25,8 +25,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();
         if (!ArchiveErrorCatcher.get_next_header (archive_reader.archive, out iterator)) {
-            // its empty or something went wrong - throw exception
-            var msg = "Error creating write archive for archive '%s'. Empty?";
+            var msg = "Error creating write archive for archive '%s'. It is probably empty.";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
         }
 
@@ -71,7 +70,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
 
             var len = iterator.size ();
             var buf = new uint8[len];
-            archive.write_header (iterator);
+            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.write_header (iterator); });
             if (len > 0)
                 insert_data (buf, archive_reader.archive.read_data (buf, (size_t) len));
         }
@@ -80,10 +79,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
     }
 
     private void prepare_archive () throws Util.ArchiveError {
-        if (archive.set_format (format) != Archive.Result.OK) {
-            var msg = "Failed setting format (%d) for archive. Message: '%s'.";
-            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, format, archive.error_string ());
-        }
+        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.set_format (format); });
 
         if (filters != null)
             add_filters ();
@@ -114,7 +110,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
             // get file info, read data into memory
             var filestream = GLib.FileStream.open (src, "r");
             filestream.read ((uint8[]) buf, (size_t) len);
-            archive.write_header(entry);
+            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.write_header(entry); });
             insert_data ((uint8[]) buf, len);
         } catch (GLib.Error e) {
             throw new Util.ArchiveError.FILE_OPERATION_ERROR ("Error reading from source file '%s'. Message: '%s'.",

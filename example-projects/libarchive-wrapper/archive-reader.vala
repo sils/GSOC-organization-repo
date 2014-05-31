@@ -108,32 +108,7 @@ public class Boxes.ArchiveReader : GLib.Object {
         else
             set_filter_stack ();
 
-        open_filename ();
-    }
-
-    private void open_filename (uint retry = 1) throws Util.ArchiveError {
-        switch (archive.open_filename (filename, BLOCK_SIZE)) {
-        case Archive.Result.OK:
-            return;
-
-        case Archive.Result.RETRY:
-            if (retry > 0) {
-                open_filename (retry - 1);
-
-                return;
-            }
-            break;
-
-        case Archive.Result.WARN:
-            warning ("%s", archive.error_string ());
-            return;
-
-        default:
-            break;
-        }
-        // TODO better error handling
-        throw new Util.ArchiveError.UNKNOWN_ARCHIVE_TYPE ("Given filename is no supported archive. Error: '%s'.",
-                                                          archive.error_string ());
+        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename, BLOCK_SIZE); });
     }
 
     private void set_filter_stack () throws Util.ArchiveError {
