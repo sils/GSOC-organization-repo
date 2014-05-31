@@ -69,10 +69,11 @@ public class Boxes.ArchiveWriter : GLib.Object {
             }
 
             var len = iterator.size ();
-            var buf = new uint8[len];
             ArchiveErrorCatcher.handle_errors (archive, () => { return archive.write_header (iterator); });
-            if (len > 0)
+            if (len > 0) {
+                var buf = new uint8[len];
                 insert_data (buf, archive_reader.archive.read_data (buf, (size_t) len));
+            }
         }
 
         archive_reader.reset ();
