@@ -1,7 +1,10 @@
 int main () {
     try {
+        var read = new Boxes.ArchiveReader ("testfiles/Fedora-20-x86_64-DVD.iso");
+        read.extract_file ("isolinux/initrd.img", "testfiles/fedorainitrd");
+
         Timer timer = new Timer ();
-        var read = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd");
+        read = new Boxes.ArchiveReader ("testfiles/ubuntu_initrd");
 
         var write = new Boxes.ArchiveWriter.from_archive_reader (read, "testfiles/ubuntu_initrd~");
         write.insert_file ("testfiles/preseed.cfg", "preseed.cfg");

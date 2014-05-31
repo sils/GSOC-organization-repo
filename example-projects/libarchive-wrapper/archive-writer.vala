@@ -15,7 +15,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         this.filters = filters.copy ();
 
         prepare_archive ();
-        ArchiveUtils.arg_handle_errors (archive, archive.open_filename, filename);
+        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename); });
     }
 
     public ArchiveWriter.from_archive_reader (ArchiveReader archive_reader,
@@ -24,7 +24,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
                                               throws Util.ArchiveError {
         unowned Archive.Entry iterator;
         archive = new Archive.Write ();
-        if (!ArchiveUtils.get_next_header (archive_reader.archive, out iterator)) {
+        if (!ArchiveErrorCatcher.get_next_header (archive_reader.archive, out iterator)) {
             // its empty or something went wrong - throw exception
             var msg = "Error creating write archive for archive '%s'. Empty?";
             throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR (msg, filename);
@@ -33,7 +33,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
         format = archive_reader.archive.format ();
         get_filters (archive_reader.archive);
         prepare_archive ();
-        ArchiveUtils.arg_handle_errors (archive, archive.open_filename, filename);
+        ArchiveErrorCatcher.handle_errors (archive, () => { return archive.open_filename (filename); });
 
         archive_reader.reset ();
 
@@ -41,12 +41,15 @@ public class Boxes.ArchiveWriter : GLib.Object {
             import_read_archive (archive_reader);
     }
 
-    // FIXME if a hardlink points to an omitted file the body will not be stored, maybe iterator.nlink () helps
+    // if omit_hardlinked_files is true a file body will be omitted if its on the list independently from it having a
+    // hardlink pointing to it or not. If it is set to false a file body with a hardlink on the omittion list will
+    // result in the file NOT being omitted.
     public void import_read_archive (ArchiveReader archive_reader,
-                                     string[]?     omit_files = null)
+                                     string[]?     omit_files = null,
+                                     bool          omit_hardlinked_files = false)
                                      throws Util.ArchiveError {
         unowned Archive.Entry iterator;
-        while (ArchiveUtils.get_next_header (archive_reader.archive, out iterator)) {
+        while (ArchiveErrorCatcher.get_next_header (archive_reader.archive, out iterator)) {
             bool omit = false;
             foreach (var file in omit_files) {
                 if (file == iterator.pathname ()) {
@@ -57,9 +60,13 @@ public class Boxes.ArchiveWriter : GLib.Object {
             }
 
             if (omit) {
-                debug ("Omitting file '%s' on archive recreation.", iterator.pathname ());
+                if (omit_hardlinked_files || iterator.nlink () == 1 || iterator.hardlink () == null) {
+                    debug ("Omitting file '%s' on archive recreation.", iterator.pathname ());
 
-                continue;
+                    continue;
+                } else {
+                    warning ("File '%s' cannot be omitted since a hardlink points to it.", iterator.pathname ());
+                }
             }
 
             var len = iterator.size ();
@@ -114,7 +121,7 @@ public class Boxes.ArchiveWriter : GLib.Object {
 
     public void add_filters () throws Util.ArchiveError {
         foreach (var filter in filters)
-            ArchiveUtils.arg_handle_errors (archive, archive.add_filter, filter);
+            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.add_filter (filter); });
     }
 
     private void insert_data (void* data, int64 len) throws Util.ArchiveError {

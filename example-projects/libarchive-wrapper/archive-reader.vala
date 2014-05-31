@@ -24,7 +24,7 @@ public class Boxes.ArchiveReader : GLib.Object {
     public GLib.List<string> get_file_list () throws Util.ArchiveError {
         var result = new GLib.List<string> ();
         unowned Archive.Entry iterator;
-        while (ArchiveUtils.get_next_header (archive, out iterator)) {
+        while (ArchiveErrorCatcher.get_next_header (archive, out iterator)) {
             result.append (iterator.pathname ());}
 
         return result;
@@ -36,17 +36,22 @@ public class Boxes.ArchiveReader : GLib.Object {
     }
 
     // src_dst is a hash table while the key is the relative path in the archive and the val the path to extract to
-    public void extract_files (string[] src, string[] dsts)
+    // dont set the recursion_depth parameter from the outside
+    public void extract_files (string[] src, string[] dsts, uint recursion_depth = 0)
                                throws Util.ArchiveError
                                requires (src.length == dsts.length) {
         if (src.length == 0)
             return;
 
+        // we shouldn't need to follow a hardlink twice
+        if (recursion_depth > 1)
+            throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Maximum recursion depth exceeded. It is likely that a hardlink points to itself (at least indirectly).");
+
         unowned Archive.Entry iterator;
         uint i = 0;
         string[] hardlink_src = {};
         string[] hardlink_dst = {};
-        while (ArchiveUtils.get_next_header (archive, out iterator) && (i < src.length)) {
+        while (ArchiveErrorCatcher.get_next_header (archive, out iterator) && (i < src.length)) {
             string dst = null;
             for (uint j = 0; j < src.length; j++) {
                 if (src[j] == iterator.pathname ()) {
@@ -57,13 +62,14 @@ public class Boxes.ArchiveReader : GLib.Object {
             }
 
             if (dst == null) {
-                ArchiveUtils.handle_errors (archive, archive.read_data_skip);
+                ArchiveErrorCatcher.handle_errors (archive, archive.read_data_skip);
 
                 continue;
             }
 
             if (iterator.hardlink () != null && iterator.size () == 0) {
-                hardlink_src += iterator.pathname ();
+                debug ("Following hardlink of '%s' to '%s'.\n", iterator.pathname (), iterator.hardlink ());
+                hardlink_src += iterator.hardlink ();
                 hardlink_dst += dst;
                 i++;
 
@@ -85,23 +91,23 @@ public class Boxes.ArchiveReader : GLib.Object {
 
         reset ();
 
-        extract_files (hardlink_src, hardlink_dst);
+        extract_files (hardlink_src, hardlink_dst, recursion_depth + 1);
     }
 
     public void reset () throws Util.ArchiveError {
-        ArchiveUtils.handle_errors (archive, archive.close);
+        ArchiveErrorCatcher.handle_errors (archive, archive.close);
         open_archive ();
     }
 
     private void open_archive () throws Util.ArchiveError {
         archive = new Archive.Read ();
         if (format == null)
-            ArchiveUtils.handle_errors (archive, archive.support_format_all);
+            ArchiveErrorCatcher.handle_errors (archive, archive.support_format_all);
         else
-            ArchiveUtils.arg_handle_errors<Archive.Format> (archive, archive.set_format, format);
+            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.set_format (format); });
 
         if (filters == null)
-            ArchiveUtils.handle_errors (archive, archive.support_filter_all);
+            ArchiveErrorCatcher.handle_errors (archive, archive.support_filter_all);
         else
             set_filter_stack ();
 
@@ -135,7 +141,7 @@ public class Boxes.ArchiveReader : GLib.Object {
 
     private void set_filter_stack () throws Util.ArchiveError {
         foreach (var filter in filters)
-            ArchiveUtils.arg_handle_errors (archive, archive.append_filter, filter);
+            ArchiveErrorCatcher.handle_errors (archive, () => { return archive.append_filter (filter); });
     }
 }
 

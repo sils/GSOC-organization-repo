@@ -10,9 +10,9 @@ public errordomain Util.ArchiveError {
     UNKNOWN
 }
 
-public class Boxes.ArchiveUtils {
+public class Boxes.ArchiveErrorCatcher {
     // This class is not inteneded to be created
-    private ArchiveUtils () {}
+    private ArchiveErrorCatcher () {}
 
     public static bool get_next_header (Archive.Read              archive,
                                         out unowned Archive.Entry iterator,
@@ -43,7 +43,6 @@ public class Boxes.ArchiveUtils {
     }
 
     public delegate Archive.Result libarchive_function ();
-    public delegate Archive.Result arg_libarchive_function<T> (T arg);
 
     public static void handle_errors (Archive.Archive     archive,
                                       libarchive_function function,
@@ -58,33 +57,6 @@ public class Boxes.ArchiveUtils {
                 break;
 
             handle_errors (archive, function, retry - 1);
-            return;
-
-        case Archive.Result.WARN:
-            warning ("%s", archive.error_string ());
-            return;
-
-        default: // EOF error doesnt make sense, throw an error too
-            break;
-        }
-        // TODO better error handling
-        throw new Util.ArchiveError.GENERAL_ARCHIVE_ERROR ("Unable to execute function.");
-    }
-
-    public static void arg_handle_errors<T> (Archive.Archive            archive,
-                                             arg_libarchive_function<T> function,
-                                             T                          arg,
-                                             uint                       retry = 1)
-                                             throws Util.ArchiveError {
-        switch (function (arg)) {
-        case Archive.Result.OK:
-            return;
-
-        case Archive.Result.RETRY:
-            if (retry > 0)
-                break;
-
-            arg_handle_errors (archive, function, arg, retry - 1);
             return;
 
         case Archive.Result.WARN:
