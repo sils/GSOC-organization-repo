@@ -8,7 +8,6 @@ public class Boxes.ArchiveReader : GLib.Object {
     private Archive.Format? format = null;
     private GLib.List<Archive.Filter>? filters = null;
 
-
     public ArchiveReader (string                     filename,
                           Archive.Format?            format  = null,
                           GLib.List<Archive.Filter>? filters = null)
@@ -30,7 +29,7 @@ public class Boxes.ArchiveReader : GLib.Object {
         return result;
     }
 
-    // just a convenience wrapper, don't use it for extracting several files for performance reasons!
+    // convenience wrapper, don't use it for extracting more than one file for performance reasons!
     public void extract_file (string src, string dst) throws Util.ArchiveError {
         extract_files ({src}, {dst});
     }
